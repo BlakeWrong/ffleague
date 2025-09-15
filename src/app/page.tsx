@@ -30,13 +30,9 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const baseUrl = process.env.NODE_ENV === 'production'
-          ? 'https://ffleague-blakewrong.vercel.app'
-          : 'http://localhost:8000';
+        console.log('Fetching from:', '/api/league-stats');
 
-        console.log('Fetching from:', `${baseUrl}/api/league-stats`);
-
-        const response = await fetch(`${baseUrl}/api/league-stats`, {
+        const response = await fetch('/api/league-stats', {
           cache: 'no-store',
         });
 
