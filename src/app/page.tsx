@@ -1,28 +1,62 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Trophy, Users, TrendingUp, Calendar } from "lucide-react";
+import { useEffect, useState } from "react";
 
-async function getLeagueData() {
-  try {
-    const baseUrl = process.env.NODE_ENV === 'production'
-      ? 'https://ffleague-blakewrong.vercel.app'
-      : 'http://localhost:8000';
-    const response = await fetch(`${baseUrl}/api/league-stats`, {
-      cache: 'no-store',
-    });
-    if (!response.ok) {
-      return null;
-    }
-    return await response.json();
-  } catch {
-    return null;
-  }
+interface LeagueData {
+  total_teams: number;
+  current_week: number;
+  league_leader: {
+    team_name: string;
+    record: string;
+  };
+  average_score: string;
+  recent_matchups: Array<{
+    week: number;
+    home_team: string;
+    home_score: number;
+    away_team: string;
+    away_score: number;
+  }>;
 }
 
-export default async function Home() {
-  const leagueData = await getLeagueData();
+export default function Home() {
+  const [leagueData, setLeagueData] = useState<LeagueData | null>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const baseUrl = process.env.NODE_ENV === 'production'
+          ? 'https://ffleague-blakewrong.vercel.app'
+          : 'http://localhost:8000';
+
+        console.log('Fetching from:', `${baseUrl}/api/league-stats`);
+
+        const response = await fetch(`${baseUrl}/api/league-stats`, {
+          cache: 'no-store',
+        });
+
+        console.log('Response status:', response.status);
+
+        if (!response.ok) {
+          console.log('Response not OK:', response.status, response.statusText);
+          return;
+        }
+
+        const data = await response.json();
+        console.log('API data:', data);
+        setLeagueData(data);
+      } catch (error) {
+        console.error('Fetch error:', error);
+      }
+    }
+
+    fetchData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -123,7 +157,7 @@ export default async function Home() {
             </h3>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {leagueData?.recent_matchups ? (
-                leagueData.recent_matchups.map((matchup: { week: number; home_team: string; home_score: number; away_team: string; away_score: number }, index: number) => (
+                leagueData.recent_matchups.map((matchup, index) => (
                   <Card key={index}>
                     <CardHeader>
                       <CardTitle className="text-lg">
