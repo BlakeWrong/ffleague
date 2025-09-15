@@ -13,7 +13,7 @@ async function getLeagueData() {
       return null;
     }
     return await response.json();
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -46,7 +46,7 @@ export default async function Home() {
               Welcome to Your Fantasy Football League
             </h2>
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
-              Track your team's performance, analyze matchups, and dominate your league
+              Track your team&apos;s performance, analyze matchups, and dominate your league
             </p>
           </section>
 
@@ -120,7 +120,7 @@ export default async function Home() {
             </h3>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {leagueData?.recent_matchups ? (
-                leagueData.recent_matchups.map((matchup: any, index: number) => (
+                leagueData.recent_matchups.map((matchup: { week: number; home_team: string; home_score: number; away_team: string; away_score: number }, index: number) => (
                   <Card key={index}>
                     <CardHeader>
                       <CardTitle className="text-lg">
