@@ -29,7 +29,7 @@ export default async function Home() {
             <div className="flex items-center space-x-2">
               <Trophy className="h-8 w-8 text-blue-600" />
               <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
-                FF League
+                FF League test1
               </h1>
             </div>
             <Badge variant="outline" className="text-xs sm:text-sm">
