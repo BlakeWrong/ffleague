@@ -1,167 +1,36 @@
-# Fantasy Football League Dashboard
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-A modern web application to display your ESPN Fantasy Football league information with a beautiful UI built on Next.js, shadcn/ui, and Tailwind CSS.
+## Getting Started
 
-## Features
-
-- 📊 **League Overview**: Display team standings, records, and points
-- 🏆 **Matchup Results**: View weekly matchups and scores
-- 📈 **Historical Data**: Support for multiple seasons
-- 🎨 **Modern UI**: Built with shadcn/ui components and Tailwind CSS
-- ⚡ **Fast Performance**: Next.js with TypeScript
-- 🚀 **Vercel Deployment**: Serverless Python API endpoints
-
-## Project Structure
-
-```
-ffleague/
-├── frontend/           # Next.js frontend application
-│   ├── src/
-│   │   ├── app/       # Next.js app router
-│   │   ├── components/ # React components (including shadcn/ui)
-│   │   └── lib/       # Utility functions
-│   ├── package.json
-│   └── tsconfig.json
-├── api/               # Python serverless functions
-│   ├── league.py      # League data endpoint
-│   └── matchups.py    # Matchup data endpoint
-├── main.py            # Core ESPN API logic
-├── requirements.txt   # Python dependencies
-├── vercel.json        # Vercel deployment config
-└── .env.example       # Environment variables template
-```
-
-## Setup Instructions
-
-### 1. Clone and Install Dependencies
+First, run the development server:
 
 ```bash
-git clone <your-repo-url>
-cd ffleague
-
-# Install frontend dependencies
-cd frontend
-npm install
-cd ..
-```
-
-### 2. Environment Configuration
-
-1. Copy `.env.example` to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. Get your ESPN credentials:
-   - Go to ESPN Fantasy Football in your browser
-   - Open Developer Tools (F12)
-   - Go to Application/Storage > Cookies
-   - Find your `ESPN_S2` and `SWID` values
-   - Get your `LEAGUE_ID` from the URL
-
-3. Fill in your `.env` file:
-   ```
-   LEAGUE_ID=123456789
-   ESPN_S2=your_espn_s2_cookie_here
-   SWID=your_swid_here
-   ```
-
-### 3. Local Development
-
-```bash
-# Start the frontend development server
-cd frontend
 npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
 ```
 
-The frontend will be available at `http://localhost:3000`
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-### 4. API Endpoints
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-Once deployed, your API will have these endpoints:
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-- `GET /api/league?year=2024` - Get league info and standings
-- `GET /api/matchups?year=2024` - Get all matchups for the season
-- `GET /api/matchups?year=2024&week=1` - Get matchups for a specific week
+## Learn More
 
-## Vercel Deployment
+To learn more about Next.js, take a look at the following resources:
 
-### 1. Connect to Vercel
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-1. Push your code to GitHub
-2. Import your repository in [Vercel Dashboard](https://vercel.com)
-3. Vercel will automatically detect it's a Next.js project
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-### 2. Environment Variables
+## Deploy on Vercel
 
-In your Vercel project dashboard, add these environment variables:
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-```
-LEAGUE_ID=your_league_id
-ESPN_S2=your_espn_s2_cookie
-SWID=your_swid_value
-```
-
-### 3. Deploy
-
-Vercel will automatically deploy on every push to your main branch.
-
-## Technology Stack
-
-### Frontend
-- **Next.js 15** - React framework with App Router
-- **TypeScript** - Type safety
-- **Tailwind CSS** - Utility-first CSS framework
-- **shadcn/ui** - High-quality UI components
-- **Lucide React** - Icons
-
-### Backend
-- **Python 3.9** - Serverless functions
-- **espn-api** - ESPN Fantasy Football API client
-- **pandas** - Data manipulation
-- **Vercel** - Serverless deployment
-
-## Development
-
-### Adding New Components
-
-```bash
-cd frontend
-npx shadcn@latest add <component-name>
-```
-
-### Extending the API
-
-Add new Python files to the `api/` directory. Each file should export a `handler` function for Vercel serverless functions.
-
-### Local Testing
-
-For local API testing, you can run your Python scripts directly:
-
-```bash
-python main.py
-```
-
-## Troubleshooting
-
-### ESPN API Issues
-- Make sure your `ESPN_S2` and `SWID` cookies are current
-- Private leagues require authentication
-- Check that your `LEAGUE_ID` is correct
-
-### Vercel Deployment Issues
-- Ensure all environment variables are set in Vercel dashboard
-- Check Vercel function logs for Python errors
-- Verify `requirements.txt` includes all dependencies
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test locally
-5. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
