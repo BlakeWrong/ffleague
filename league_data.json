@@ -1,0 +1,53 @@
+{
+  "total_teams": 10,
+  "current_week": 17,
+  "league_leader": {
+    "team_name": "Here 4 the Beer",
+    "record": "10-4"
+  },
+  "average_score": "1676.5",
+  "recent_matchups": [
+    {
+      "week": 16,
+      "home_team": "Hawk Tua",
+      "home_score": 115.7,
+      "away_team": "Kansas City Arrestables",
+      "away_score": 90.5
+    },
+    {
+      "week": 17,
+      "home_team": "Clark County Body Kamara ",
+      "home_score": 178.9,
+      "away_team": "Andy Reid's Mustache",
+      "away_score": 145.4
+    },
+    {
+      "week": 17,
+      "home_team": "Here 4 the Beer",
+      "home_score": 130.5,
+      "away_team": "You got a Purdy mouth",
+      "away_score": 87.9
+    },
+    {
+      "week": 17,
+      "home_team": "Sock Stiffener",
+      "home_score": 86.2,
+      "away_team": "Tit$burg feelers",
+      "away_score": 115.0
+    },
+    {
+      "week": 17,
+      "home_team": "Hawk Tua",
+      "home_score": 129.0,
+      "away_team": "Milds n' Yak",
+      "away_score": 126.6
+    },
+    {
+      "week": 17,
+      "home_team": "The Two-Two Train",
+      "home_score": 120.4,
+      "away_team": "Kansas City Arrestables",
+      "away_score": 105.5
+    }
+  ]
+}
