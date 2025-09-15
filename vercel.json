@@ -1,7 +1,1 @@
-{
-  "functions": {
-    "api/league-stats.py": {
-      "runtime": "@vercel/python@4.8.0"
-    }
-  }
-}
+{}
