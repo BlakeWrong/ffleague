@@ -1,13 +1,7 @@
 {
   "functions": {
-    "api/*.py": {
+    "api/league-stats.py": {
       "runtime": "@vercel/python@4.8.0"
     }
-  },
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
-    }
-  ]
+  }
 }
