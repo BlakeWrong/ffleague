@@ -6,7 +6,10 @@ import { Trophy, Users, TrendingUp, Calendar } from "lucide-react";
 
 async function getLeagueData() {
   try {
-    const response = await fetch('http://localhost:8000/api/league-stats', {
+    const baseUrl = process.env.NODE_ENV === 'production'
+      ? 'https://ffleague-blakewrong.vercel.app'
+      : 'http://localhost:8000';
+    const response = await fetch(`${baseUrl}/api/league-stats`, {
       cache: 'no-store',
     });
     if (!response.ok) {
