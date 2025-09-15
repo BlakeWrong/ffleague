@@ -11,14 +11,14 @@
     }
   ],
   "env": {
-    "LEAGUE_ID": "@league-id",
-    "ESPN_S2": "@espn-s2",
+    "LEAGUE_ID": "@league_id",
+    "ESPN_S2": "@espn_s2",
     "SWID": "@swid"
   },
   "build": {
     "env": {
-      "LEAGUE_ID": "@league-id",
-      "ESPN_S2": "@espn-s2",
+      "LEAGUE_ID": "@league_id",
+      "ESPN_S2": "@espn_s2",
       "SWID": "@swid"
     }
   }
