@@ -1,0 +1,6 @@
+python-dotenv
+espn-api
+pandas
+tqdm
+fastapi
+uvicorn[standard]
