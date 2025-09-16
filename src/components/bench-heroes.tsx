@@ -37,7 +37,7 @@ interface BenchHeroesProps {
 
 export function BenchHeroes({ currentWeek = 1, currentYear = 2025 }: BenchHeroesProps) {
   const [selectedYear, setSelectedYear] = useState(currentYear.toString())
-  const [selectedWeek, setSelectedWeek] = useState(currentWeek.toString())
+  const [selectedWeek, setSelectedWeek] = useState(Math.max(1, currentWeek - 1).toString())
   const [data, setData] = useState<BenchHeroesData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | undefined>()
@@ -60,7 +60,7 @@ export function BenchHeroes({ currentWeek = 1, currentYear = 2025 }: BenchHeroes
         const yearsResponse = await fetch('/api/available-years')
         if (yearsResponse.ok) {
           const yearsData = await yearsResponse.json()
-          const allYears = yearsData.available_years || []
+          const allYears = yearsData.supported_years || yearsData.available_years || []
           setAvailableYears(allYears)
 
           // Set default year to the most recent available year
@@ -75,10 +75,10 @@ export function BenchHeroes({ currentWeek = 1, currentYear = 2025 }: BenchHeroes
     fetchData()
   }, [])
 
-  // Initialize with current week/year
+  // Initialize with current week/year (bench heroes defaults to previous week)
   useEffect(() => {
     setSelectedYear(currentYear.toString())
-    setSelectedWeek(currentWeek.toString())
+    setSelectedWeek(Math.max(1, currentWeek - 1).toString())
   }, [currentYear, currentWeek])
 
   // Fetch available weeks when year changes

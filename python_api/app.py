@@ -75,12 +75,12 @@ async def get_available_years():
         # Sort years in descending order (newest first)
         available_years.sort(reverse=True)
 
-        # Filter to only include years 2019 and later for bench heroes compatibility
-        bench_heroes_years = [year for year in available_years if year >= 2019]
+        # Filter to only include years 2019 and later due to ESPN API limitations
+        supported_years = [year for year in available_years if year >= 2019]
 
         return {
             "available_years": available_years,  # All years for other endpoints
-            "bench_heroes_years": bench_heroes_years,  # Only 2019+ for bench heroes
+            "supported_years": supported_years,  # Only 2019+ due to ESPN API limitations
             "total_years": len(available_years),
             "current_year": 2025,
             "current_week": league.current_week if hasattr(league, 'current_week') else 18
