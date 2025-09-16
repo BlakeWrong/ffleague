@@ -204,5 +204,7 @@ async def get_matchups_by_year_week(year: int, week: int):
 if __name__ == "__main__":
     import uvicorn
     import os
-    port = int(os.environ.get("PORT", 8001))
-    uvicorn.run("app:app", host="0.0.0.0", port=port)
+    # Use PORT+1 for Python API to avoid conflict with Next.js
+    heroku_port = int(os.environ.get("PORT", 3000))
+    python_port = heroku_port + 1 if heroku_port != 8001 else 8001
+    uvicorn.run("app:app", host="0.0.0.0", port=python_port)

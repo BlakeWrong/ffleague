@@ -10,9 +10,9 @@ export async function GET(request: NextRequest) {
 
     // Use different API URLs for development vs production
     const isProd = process.env.NODE_ENV === 'production';
-    const pythonBaseUrl = isProd
-      ? 'http://localhost:8001'
-      : 'http://localhost:8001';
+    const herokuPort = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+    const pythonPort = isProd ? (herokuPort + 1) : 8001;
+    const pythonBaseUrl = `http://localhost:${pythonPort}`;
 
     // Determine which Python API endpoint to call
     const pythonApiUrl = year
