@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     // Use different API URLs for development vs production
     const isProd = process.env.NODE_ENV === 'production';
     const pythonBaseUrl = isProd
-      ? `${process.env.HEROKU_APP_URL || 'http://localhost'}/api`
+      ? 'http://localhost:8001'
       : 'http://localhost:8001';
 
     // Determine which Python API endpoint to call
