@@ -81,10 +81,55 @@ async def get_available_years():
         return {
             "available_years": available_years,  # All years for other endpoints
             "bench_heroes_years": bench_heroes_years,  # Only 2019+ for bench heroes
-            "total_years": len(available_years)
+            "total_years": len(available_years),
+            "current_year": 2025,
+            "current_week": league.current_week if hasattr(league, 'current_week') else 18
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch available years: {str(e)}")
+
+@app.get("/available-weeks/{year}")
+async def get_available_weeks(year: int):
+    """Get list of available weeks for a specific year"""
+    try:
+        if not (2019 <= year <= 2025):
+            raise HTTPException(status_code=400, detail="Year must be between 2019 and 2025")
+
+        league = League(league_id=LEAGUE_ID, year=year, espn_s2=ESPN_S2, swid=SWID, debug=False)
+
+        # For the current year (2025), limit to current week
+        if year == 2025:
+            current_week = league.current_week if hasattr(league, 'current_week') else 1
+            max_week = max(1, current_week)  # At least show week 1
+        else:
+            # For past years, check what weeks actually have data by trying a few key weeks
+            max_week = 17  # Default to full season for past years
+
+            # Try to determine actual season length by checking if week 17 has data
+            try:
+                box_scores_17 = league.box_scores(17)
+                if box_scores_17:
+                    max_week = 17
+                else:
+                    max_week = 16
+            except:
+                # If week 17 fails, try week 16
+                try:
+                    box_scores_16 = league.box_scores(16)
+                    max_week = 16 if box_scores_16 else 15
+                except:
+                    max_week = 15  # Conservative fallback
+
+        available_weeks = list(range(1, max_week + 1))
+
+        return {
+            "year": year,
+            "available_weeks": available_weeks,
+            "max_week": max_week,
+            "is_current_year": year == 2025
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch available weeks for {year}: {str(e)}")
 
 @app.get("/league/stats")
 async def get_current_league_stats():

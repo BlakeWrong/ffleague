@@ -42,6 +42,8 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
   const [selectedWeek, setSelectedWeek] = useState("1")
   const [leagueId, setLeagueId] = useState<number | null>(null)
   const [availableYears, setAvailableYears] = useState<number[]>([])
+  const [availableWeeks, setAvailableWeeks] = useState<number[]>([])
+  const [weeksLoading, setWeeksLoading] = useState(false)
 
   useEffect(() => {
     async function fetchData() {
@@ -71,6 +73,39 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
     }
     fetchData()
   }, [])
+
+  // Fetch available weeks when year changes
+  useEffect(() => {
+    async function fetchWeeks() {
+      if (!selectedYear) return
+
+      setWeeksLoading(true)
+      try {
+        const response = await fetch(`/api/available-weeks/${selectedYear}`)
+        if (response.ok) {
+          const data = await response.json()
+          setAvailableWeeks(data.available_weeks || [])
+
+          // Reset to week 1 when changing years, or keep current week if it's available
+          const currentWeekNum = parseInt(selectedWeek)
+          if (!data.available_weeks.includes(currentWeekNum)) {
+            setSelectedWeek("1")
+          }
+        } else {
+          // Fallback to standard weeks if API fails
+          setAvailableWeeks(Array.from({ length: 18 }, (_, i) => i + 1))
+        }
+      } catch (error) {
+        console.error('Failed to fetch available weeks:', error)
+        // Fallback to standard weeks
+        setAvailableWeeks(Array.from({ length: 18 }, (_, i) => i + 1))
+      } finally {
+        setWeeksLoading(false)
+      }
+    }
+
+    fetchWeeks()
+  }, [selectedYear, selectedWeek])
 
   const handleFetch = () => {
     onDataRequest(parseInt(selectedYear), parseInt(selectedWeek))
@@ -117,7 +152,7 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
           <div>
             <CardTitle className="flex items-center gap-2 text-xl">
               <TrophyIcon className="h-5 w-5 text-yellow-500" />
-              fuuuuck gronk on da bench
+              <em>"Fuccck gronk on the bench"</em>
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
               Top scoring bench players by week (because pain is eternal)
@@ -145,16 +180,20 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
               </SelectContent>
             </Select>
 
-            <Select value={selectedWeek} onValueChange={setSelectedWeek}>
+            <Select value={selectedWeek} onValueChange={setSelectedWeek} disabled={weeksLoading}>
               <SelectTrigger className="w-full sm:w-24">
-                <SelectValue placeholder="Week" />
+                <SelectValue placeholder={weeksLoading ? "Loading..." : "Week"} />
               </SelectTrigger>
               <SelectContent>
-                {Array.from({ length: 18 }, (_, i) => (
-                  <SelectItem key={i + 1} value={(i + 1).toString()}>
-                    Week {i + 1}
-                  </SelectItem>
-                ))}
+                {availableWeeks.length > 0 ? (
+                  availableWeeks.map((week) => (
+                    <SelectItem key={week} value={week.toString()}>
+                      Week {week}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="1" disabled>Loading weeks...</SelectItem>
+                )}
               </SelectContent>
             </Select>
 
@@ -182,7 +221,7 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
                   {/* Screenshot */}
                   <img
                     src="/images/IMG_1651.PNG"
-                    alt="The legendary 'fuuuuck gronk on da bench' group chat moment"
+                    alt="The legendary 'Fuccck gronk on the bench' group chat moment"
                     className="w-full h-auto object-contain bg-white"
                   />
                 </div>
@@ -192,24 +231,24 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
             {/* Story Content */}
             <div className="flex-1">
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                📜 The Origin of "fuuuuck gronk on da bench"
+                📜 The Origin of "Fuccck gronk on the bench"
               </h3>
 
               <div className="prose prose-sm dark:prose-invert max-w-none">
                 <p className="text-gray-700 dark:text-gray-300 mb-4">
-                  On <strong>September 9, 2021 - Week 1</strong>, a legend was born in the group chat.
-                  Rob Gronkowski, sitting pretty on someone's bench, exploded for <strong>29.0 points</strong>
-                  in his return to fantasy relevance with Tom Brady and the Tampa Bay Buccaneers.
+                  On <strong>September 9, 2021 - Week 1</strong>, fantasy football history was written through technical mishap and pure suffering.
+                  Rob Gronkowski, riding Luke's bench in his return to fantasy relevance with Tom Brady and the Tampa Bay Buccaneers,
+                  exploded for <strong>29.0 points</strong> of devastating bench production.
                 </p>
 
                 <p className="text-gray-700 dark:text-gray-300 mb-4">
-                  The group chat erupted. The pain was real. The memes were born. And thus,
-                  "fuuuuck gronk on da bench" became the rallying cry for every fantasy manager
-                  who's ever left points on the sideline.
+                  Luke's anguish was so profound that he texted the same lament four times due to a technical glitch,
+                  accidentally creating the perfect meme. What started as a frustrated mistake became the eternal rallying cry:
+                  "Fuccck gronk on the bench" - forever immortalizing every fantasy manager's worst nightmare.
                 </p>
 
                 <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 mb-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">📊 The Legendary Performance</h4>
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-2">📊 The Fateful Performance</h4>
                   <div className="text-sm text-gray-600 dark:text-gray-400">
                     <div><strong>Player:</strong> Rob Gronkowski (TE, Tampa Bay)</div>
                     <div><strong>Date:</strong> September 9, 2021 (Week 1)</div>
@@ -223,7 +262,7 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
                     className="inline-flex items-center gap-1 mt-3 text-blue-600 hover:text-blue-800 text-sm font-medium"
                   >
                     <ExternalLinkIcon className="h-4 w-4" />
-                    View the Legendary ESPN Boxscore
+                    View the Infamous ESPN Boxscore
                   </a>
                 </div>
 
