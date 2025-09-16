@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { StandingsTable } from "@/components/standings-table";
 import { BenchHeroes } from "@/components/bench-heroes";
+import { MatchupsSection } from "@/components/matchups-section";
 import { Trophy, Users, TrendingUp, Calendar } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -181,6 +182,16 @@ export default function Home() {
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
               Track your team&apos;s performance, analyze matchups, and dominate your league
             </p>
+          </section>
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+              Weekly Matchups
+            </h2>
+            <MatchupsSection
+              currentWeek={leagueData?.current_week}
+              currentYear={2025}
+            />
           </section>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
