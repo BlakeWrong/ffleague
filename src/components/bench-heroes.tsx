@@ -151,11 +151,7 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <TrophyIcon className="h-5 w-5 text-yellow-500" />
-              <em>&ldquo;Fuccck gronk on the bench&rdquo;</em>
-            </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground">
               Top scoring bench players by week (because pain is eternal)
             </p>
           </div>
