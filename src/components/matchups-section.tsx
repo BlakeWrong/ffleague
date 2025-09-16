@@ -40,8 +40,8 @@ export function MatchupsSection({ currentWeek = 1, currentYear = 2025 }: Matchup
   const [matchupsData, setMatchupsData] = useState<MatchupsData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | undefined>()
-  const [availableYears, setAvailableYears] = useState<number[]>([2025, 2024, 2023, 2022, 2021, 2020, 2019])
-  const [availableWeeks, setAvailableWeeks] = useState<number[]>([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17])
+  const [availableYears, setAvailableYears] = useState<number[]>([])
+  const [availableWeeks, setAvailableWeeks] = useState<number[]>([])
   const [weeksLoading, setWeeksLoading] = useState(false)
 
   // Initialize with current week/year
@@ -60,9 +60,8 @@ export function MatchupsSection({ currentWeek = 1, currentYear = 2025 }: Matchup
         if (response.ok) {
           const data = await response.json()
           console.log('Available years data:', data)
-          if (data.years && data.years.length > 0) {
-            setAvailableYears(data.years)
-          }
+          const allYears = data.available_years || []
+          setAvailableYears(allYears)
         } else {
           const errorText = await response.text()
           console.error('Failed to fetch available years:', response.status, errorText)
@@ -86,9 +85,8 @@ export function MatchupsSection({ currentWeek = 1, currentYear = 2025 }: Matchup
         if (response.ok) {
           const data = await response.json()
           console.log('Available weeks data:', data)
-          if (data.weeks && data.weeks.length > 0) {
-            setAvailableWeeks(data.weeks)
-          }
+          const allWeeks = data.available_weeks || []
+          setAvailableWeeks(allWeeks)
         } else {
           const errorText = await response.text()
           console.error('Failed to fetch available weeks:', response.status, errorText)
