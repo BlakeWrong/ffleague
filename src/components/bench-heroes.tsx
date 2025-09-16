@@ -1,10 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import {
   Select,
   SelectContent,
@@ -32,15 +31,16 @@ interface BenchHeroesData {
 }
 
 interface BenchHeroesProps {
-  onDataRequest: (year: number, week: number) => void
-  data: BenchHeroesData | null
-  isLoading: boolean
-  error?: string
+  currentWeek?: number
+  currentYear?: number
 }
 
-export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHeroesProps) {
-  const [selectedYear, setSelectedYear] = useState("2025")
-  const [selectedWeek, setSelectedWeek] = useState("1")
+export function BenchHeroes({ currentWeek = 1, currentYear = 2025 }: BenchHeroesProps) {
+  const [selectedYear, setSelectedYear] = useState(currentYear.toString())
+  const [selectedWeek, setSelectedWeek] = useState(currentWeek.toString())
+  const [data, setData] = useState<BenchHeroesData | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | undefined>()
   const [leagueId, setLeagueId] = useState<number | null>(null)
   const [availableYears, setAvailableYears] = useState<number[]>([])
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([])
@@ -75,6 +75,12 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
     fetchData()
   }, [])
 
+  // Initialize with current week/year
+  useEffect(() => {
+    setSelectedYear(currentYear.toString())
+    setSelectedWeek(currentWeek.toString())
+  }, [currentYear, currentWeek])
+
   // Fetch available weeks when year changes
   useEffect(() => {
     async function fetchWeeks() {
@@ -108,9 +114,36 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
     fetchWeeks()
   }, [selectedYear, selectedWeek])
 
-  const handleFetch = () => {
-    onDataRequest(parseInt(selectedYear), parseInt(selectedWeek))
-  }
+  const fetchBenchHeroes = useCallback(async (year: number, week: number) => {
+    setIsLoading(true)
+    setError(undefined)
+    try {
+      console.log('Fetching bench heroes for:', year, week)
+      const response = await fetch(`/api/bench-heroes?year=${year}&week=${week}`, {
+        cache: 'no-store',
+      })
+      console.log('Bench heroes response status:', response.status)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || `Request failed with status ${response.status}`)
+      }
+      const benchData = await response.json()
+      console.log('Bench heroes data:', benchData)
+      setData(benchData)
+    } catch (error) {
+      console.error('Bench heroes fetch error:', error)
+      setError(error instanceof Error ? error.message : 'Unknown error')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  // Auto-fetch bench heroes when selections change
+  useEffect(() => {
+    if (selectedYear && selectedWeek) {
+      fetchBenchHeroes(parseInt(selectedYear), parseInt(selectedWeek))
+    }
+  }, [selectedYear, selectedWeek, fetchBenchHeroes])
 
   const getPointsBarWidth = (points: number, maxPoints: number) => {
     return maxPoints > 0 ? (points / maxPoints) * 100 : 0
@@ -279,10 +312,6 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
                   )}
                 </SelectContent>
               </Select>
-
-              <Button onClick={handleFetch} disabled={isLoading} size="sm">
-                {isLoading ? "Loading..." : "Go Cry"}
-              </Button>
             </div>
           </div>
         </div>

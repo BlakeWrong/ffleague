@@ -48,30 +48,11 @@ interface StandingsResponse {
   total_teams: number;
 }
 
-interface BenchPlayer {
-  player_name: string;
-  points: number;
-  team_name: string;
-  team_id: number;
-  owner: string;
-  position: string;
-  pro_team: string;
-}
-
-interface BenchHeroesData {
-  year: number;
-  week: number;
-  bench_heroes: BenchPlayer[];
-  total_bench_players: number;
-}
 
 export default function Home() {
   const [leagueData, setLeagueData] = useState<LeagueData | null>(null);
   const [standingsData, setStandingsData] = useState<StandingsResponse | null>(null);
   const [standingsLoading, setStandingsLoading] = useState(true);
-  const [benchHeroesData, setBenchHeroesData] = useState<BenchHeroesData | null>(null);
-  const [benchHeroesLoading, setBenchHeroesLoading] = useState(false);
-  const [benchHeroesError, setBenchHeroesError] = useState<string | undefined>();
 
   useEffect(() => {
     async function fetchData() {
@@ -125,35 +106,6 @@ export default function Home() {
     fetchData();
     fetchStandings();
   }, []);
-
-  const handleBenchHeroesRequest = async (year: number, week: number) => {
-    setBenchHeroesLoading(true);
-    setBenchHeroesError(undefined);
-
-    try {
-      console.log('Fetching bench heroes for:', year, week);
-
-      const response = await fetch(`/api/bench-heroes?year=${year}&week=${week}`, {
-        cache: 'no-store',
-      });
-
-      console.log('Bench heroes response status:', response.status);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Request failed with status ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Bench heroes data:', data);
-      setBenchHeroesData(data);
-    } catch (error) {
-      console.error('Bench heroes fetch error:', error);
-      setBenchHeroesError(error instanceof Error ? error.message : 'Unknown error');
-    } finally {
-      setBenchHeroesLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
@@ -276,10 +228,8 @@ export default function Home() {
               <em>Fuccck gronk on the bench</em>
             </h2>
             <BenchHeroes
-              onDataRequest={handleBenchHeroesRequest}
-              data={benchHeroesData}
-              isLoading={benchHeroesLoading}
-              error={benchHeroesError}
+              currentWeek={leagueData?.current_week}
+              currentYear={2025}
             />
           </section>
 
