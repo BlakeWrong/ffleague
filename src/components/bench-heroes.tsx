@@ -158,49 +158,6 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
             <p className="text-sm text-muted-foreground mt-1">
               Top scoring bench players by week (because pain is eternal)
             </p>
-            <p className="text-xs bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 p-2 rounded mt-2">
-              💡 Note: Data only available from 2019 onwards due to ESPN API limitations
-            </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="w-full sm:w-24">
-                <SelectValue placeholder="Year" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableYears.length > 0 ? (
-                  availableYears.map((year) => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="2025" disabled>No data available</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedWeek} onValueChange={setSelectedWeek} disabled={weeksLoading}>
-              <SelectTrigger className="w-full sm:w-24">
-                <SelectValue placeholder={weeksLoading ? "Loading..." : "Week"} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableWeeks.length > 0 ? (
-                  availableWeeks.map((week) => (
-                    <SelectItem key={week} value={week.toString()}>
-                      Week {week}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="1" disabled>Loading weeks...</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-
-            <Button onClick={handleFetch} disabled={isLoading} size="sm">
-              {isLoading ? "Loading..." : "Go Cry"}
-            </Button>
           </div>
         </div>
       </CardHeader>
@@ -276,6 +233,60 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
                   Because in fantasy football, the bench is where dreams go to explode. 💥
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Controls Section */}
+        <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                Search Bench Heroes
+              </h4>
+              <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                💡 Note: Data only available from 2019 onwards due to ESPN API limitations
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-full sm:w-24">
+                  <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableYears.length > 0 ? (
+                    availableYears.map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="2025" disabled>No data available</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+
+              <Select value={selectedWeek} onValueChange={setSelectedWeek} disabled={weeksLoading}>
+                <SelectTrigger className="w-full sm:w-24">
+                  <SelectValue placeholder={weeksLoading ? "Loading..." : "Week"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableWeeks.length > 0 ? (
+                    availableWeeks.map((week) => (
+                      <SelectItem key={week} value={week.toString()}>
+                        Week {week}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="1" disabled>Loading weeks...</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+
+              <Button onClick={handleFetch} disabled={isLoading} size="sm">
+                {isLoading ? "Loading..." : "Go Cry"}
+              </Button>
             </div>
           </div>
         </div>
