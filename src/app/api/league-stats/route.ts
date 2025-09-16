@@ -1,23 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readFile } from 'fs/promises'
-import { join } from 'path'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Reading league data from JSON file...');
+    console.log('Fetching league data from Python API...');
 
-    // Read the pre-generated league data
-    const filePath = join(process.cwd(), 'league_data.json');
-    const fileContent = await readFile(filePath, 'utf8');
-    const data = JSON.parse(fileContent);
+    // Get the year parameter if provided
+    const { searchParams } = new URL(request.url);
+    const year = searchParams.get('year');
 
-    console.log('Successfully read league data');
+    // Determine which Python API endpoint to call
+    const pythonApiUrl = year
+      ? `http://localhost:8001/league/stats/${year}`
+      : 'http://localhost:8001/league/stats';
+
+    console.log('Calling:', pythonApiUrl);
+
+    const response = await fetch(pythonApiUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Python API returned ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('Successfully fetched league data from Python API');
+
     return NextResponse.json(data);
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json(
       {
-        error: 'Failed to read league data',
+        error: 'Failed to fetch league data from Python API',
         message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
