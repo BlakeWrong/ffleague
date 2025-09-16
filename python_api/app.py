@@ -203,4 +203,6 @@ async def get_matchups_by_year_week(year: int, week: int):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8001, reload=True)
+    import os
+    port = int(os.environ.get("PORT", 8001))
+    uvicorn.run("app:app", host="0.0.0.0", port=port)

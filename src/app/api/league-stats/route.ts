@@ -8,10 +8,16 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year');
 
+    // Use different API URLs for development vs production
+    const isProd = process.env.NODE_ENV === 'production';
+    const pythonBaseUrl = isProd
+      ? `${process.env.HEROKU_APP_URL || 'http://localhost'}/api`
+      : 'http://localhost:8001';
+
     // Determine which Python API endpoint to call
     const pythonApiUrl = year
-      ? `http://localhost:8001/league/stats/${year}`
-      : 'http://localhost:8001/league/stats';
+      ? `${pythonBaseUrl}/league/stats/${year}`
+      : `${pythonBaseUrl}/league/stats`;
 
     console.log('Calling:', pythonApiUrl);
 

@@ -56,6 +56,34 @@ npm run dev          # Next.js frontend only
 npm run dev:python   # Python API only
 ```
 
+## Deployment
+### Heroku Full-Stack Deployment
+The application is configured for Heroku deployment with both Next.js and Python API running on a single dyno:
+
+**Setup:**
+```bash
+# Create Heroku app
+heroku create your-ff-league-app
+
+# Add both buildpacks
+heroku buildpacks:add heroku/nodejs
+heroku buildpacks:add heroku/python
+
+# Set environment variables
+heroku config:set LEAGUE_ID=your_league_id
+heroku config:set ESPN_S2=your_espn_s2
+heroku config:set SWID=your_swid
+
+# Deploy
+git push heroku development:main
+```
+
+**Configuration:**
+- `Procfile`: Runs both Next.js and Python API concurrently using `concurrently`
+- `python_api/requirements.txt`: Python dependencies for FastAPI and ESPN integration
+- Dynamic port handling for Heroku's assigned PORT
+- Next.js API routes proxy to Python API running on same dyno
+
 ## Environment Variables Required
 - `LEAGUE_ID` - ESPN Fantasy League ID
 - `ESPN_S2` - ESPN S2 cookie for private leagues
