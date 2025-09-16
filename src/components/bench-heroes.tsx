@@ -172,15 +172,20 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
             {/* Mobile Screenshot */}
             <div className="flex-shrink-0">
               <div className="relative">
-                <div className="w-64 h-96 mx-auto bg-gray-200 dark:bg-gray-700 rounded-2xl shadow-lg border-4 border-gray-300 dark:border-gray-600 flex items-center justify-center">
-                  {/* Phone Frame Mockup */}
-                  <div className="text-center text-gray-500 dark:text-gray-400">
-                    <div className="text-sm mb-2">📱 Group Chat Screenshot</div>
-                    <div className="text-xs">(Upload to /public/images/)</div>
+                <div className="w-64 mx-auto bg-black rounded-2xl shadow-2xl border-4 border-gray-800 overflow-hidden">
+                  {/* Phone Frame Top */}
+                  <div className="relative bg-black p-2">
+                    <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-gray-500 rounded-full"></div>
+                    <div className="absolute top-8 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-500 rounded-full"></div>
                   </div>
+
+                  {/* Screenshot */}
+                  <img
+                    src="/images/IMG_1651.PNG"
+                    alt="The legendary 'fuuuuck gronk on da bench' group chat moment"
+                    className="w-full h-auto object-contain bg-white"
+                  />
                 </div>
-                <div className="absolute top-4 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-gray-400 rounded-full"></div>
-                <div className="absolute top-8 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-400 rounded-full"></div>
               </div>
             </div>
 
