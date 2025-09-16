@@ -130,3 +130,183 @@ The user wants to build a comprehensive fantasy football analytics platform with
 ## Production URL
 - **Live Application**: https://ffleague-fc3c9309ff7b.herokuapp.com/
 - **Status**: Fully functional with both frontend and backend APIs
+
+## IMPORTANT: Development Workflow Rules
+- **NEVER work on master branch** - Always use development branch
+- **Always work on development branch** for all features and fixes
+- Only merge to master for production releases
+
+## Current Status (2025 Season)
+The application is currently working with 2024 data. User wants to update to 2025 season data and add:
+1. New endpoint for 2025 league standings
+2. Mobile-first shadcn table component showing current standings
+3. Automatically fetch most recent week's standings
+
+## ESPN API Documentation (espn-api Python Library)
+
+### League Class
+The League Object provides access to all ESPN Fantasy data including settings, teams, roster, players, free agents, box scores/match ups, and power rankings.
+
+**Usage:**
+```python
+from espn_api.football import League
+league = League(league_id: int, year: int, espn_s2: str = None, swid: str = None, debug=False)
+```
+
+**Variables:**
+- `league_id: int`
+- `year: int`
+- `settings: Settings`
+- `teams: List[Team]`
+- `draft: List[Pick]`
+- `current_week: int` # current fantasy football week
+- `nfl_week: int` # current nfl week
+- `previousSeasons: List[str]` # list of leagues previous seasons
+
+**Functions:**
+- `scoreboard(week: int = None) -> List[Matchup]` - Returns basic match up info for current week
+- `box_scores(week: int = None) -> List[BoxScore]` - Returns specific week match ups (current season only)
+- `power_rankings(week: int=None) -> List[Tuples(str, Team)]` - Calculates power rankings using dominance
+- `free_agents(week: int = None, size: int = 50, position: str = None, position_id: int=None) -> List[BoxPlayer]` - Returns free agents list
+- `recent_activity(size: int = 25, msg_type: str = None, offset: int = 0) -> List[Activity]` - Returns activities (requires auth)
+- `player_info(name: str = None, playerId: Union[int, list] = None) -> Union[Player, List[Player]]` - Returns player with season stats
+- `refresh() -> None` - Gets latest league data
+
+**Helper Functions:**
+- `standings() -> List[Team]` - **IMPORTANT: Use this for standings table**
+- `top_scorer() -> Team`
+- `least_scorer() -> Team`
+- `most_points_against() -> Team`
+- `top_scored_week() -> Tuple(Team, int)`
+- `least_scored_week() -> Tuple(Team, int)`
+- `get_team_data(team_id: int) -> Team`
+
+### Team Class
+**Variables:**
+- `team_id: int`
+- `team_abbrev: str`
+- `team_name: str`
+- `division_id: str`
+- `division_name: str`
+- `wins: int`
+- `losses: int`
+- `ties: int`
+- `points_for: int` # total points for through out the season
+- `points_against: int` # total points against through out the season
+- `waiver_rank: int` # waiver position
+- `acquisitions: int` # number of acquisitions made by the team
+- `acquisition_budget_spent: int` # budget spent on acquisitions
+- `drops: int` # number of drops made by the team
+- `trades: int` # number of trades made by the team
+- `move_to_ir: int` # number of players move to ir
+- `owners: List[dict]` # array of owner dict
+- `stats: dict` # holds teams season long stats
+- `streak_type: str` # string of either WIN or LOSS
+- `streak_length: int` # how long the streak is for streak type
+- `standing: int` # standing before playoffs
+- `final_standing: int` # final standing at end of season
+- `draft_projected_rank: int` # projected rank after draft
+- `playoff_pct: int` # teams projected chance to make playoffs
+- `logo_url: str`
+- `roster: List[Player]`
+- `schedule: List[Team]`
+- `scores: List[int]`
+- `outcomes: List[str]`
+
+### Player Class
+**Variables:**
+- `name: str`
+- `playerId: int`
+- `posRank: int` # players positional rank
+- `eligibleSlots: List[str]` # example ['WR', 'WR/TE/RB']
+- `lineupSlot: str` # the players lineup position
+- `acquisitionType: str`
+- `proTeam: str` # 'PIT' or 'LAR'
+- `schedule: dict` # key is scoring period
+- `onTeamId: int` # id of fantasy team
+- `position: str` # main position like 'TE' or 'QB'
+- `injuryStatus: str`
+- `injured: boolean`
+- `total_points: int` # players total points during the season
+- `avg_points: int` # players average points during the season
+- `projected_total_points: int` # projected player points for the season
+- `projected_avg_points: int` # projected players average points for the season
+- `percent_owned: int` # percentage player is rostered
+- `percent_started: int` # percentage player is started
+- `stats: dict` # holds each week stats, actual and projected points
+
+### Box Player Class
+Inherits from Player Class with additional variables:
+- `slot_position: str` # the players lineup position
+- `points: int` # points scored in the current week
+- `projected_points: int` # projected points for that week
+- `pro_opponent: str` # the pro team the player is going against
+- `pro_pos_rank: int` # the rank the pro team is against that players position
+- `game_played: int` # 0 (not played/playing) or 100 (finished game)
+- `game_date: datetime` # datetime object of when the pro game starts
+- `on_bye_week: boolean` # whether or not the player is on a bye
+- `active_status: str` # whether the player was active or not
+
+### Box Score Class
+**Variables:**
+- `home_team: Team`
+- `home_score: int`
+- `home_projected: int`
+- `away_team: Team`
+- `away_score: int`
+- `away_projected: int`
+- `home_lineup: List[BoxPlayer]`
+- `away_lineup: List[BoxPlayer]`
+- `is_playoff: bool`
+- `matchup_type: str` # values NONE, WINNERS_BRACKET, LOSERS_CONSOLATION_LADDER, WINNERS_CONSOLATION_LADDER
+
+### Pick Class
+**Variables:**
+- `team: Team`
+- `playerId: int`
+- `playerName: str`
+- `round_num: int`
+- `round_pick: int`
+- `bid_amount: int`
+- `keeper_status: bool`
+- `nominatingTeam: Team` # nominating team for auction drafts
+
+### Settings Class
+**Variables:**
+- `reg_season_count: int`
+- `veto_votes_required: int`
+- `team_count: int`
+- `playoff_team_count: int`
+- `keeper_count: int`
+- `trade_deadline: int` # epoch
+- `name: str`
+- `tie_rule: int`
+- `playoff_tie_rule: int`
+- `playoff_seed_tie_rule: int`
+- `playoff_matchup_period_length: int` # Weeks Per Playoff Matchup
+- `faab: bool` # Is the league using a free agent acquisition budget
+- `acquisition_budget: int`
+- `scoring_format: List[dict]` # example [{'abbr': 'RETD', 'label': 'TD Reception', 'id': 43, 'points': 6.0}]
+
+### Matchup Class
+**Variables:**
+- `home_team: Team`
+- `home_score: int`
+- `away_team: Team`
+- `away_score: int`
+- `is_playoff: bool`
+- `matchup_type: str` # values NONE, WINNERS_BRACKET, LOSERS_CONSOLATION_LADDER, WINNERS_CONSOLATION_LADDER
+
+### Activity Class
+**Variables:**
+- `date: int` # Epoch time milliseconds
+- `actions: List[Tuple]` # Tuple includes (team: Team Class, action: str, player: Player Class, bid_amount: int)
+
+## Important ESPN API Notes
+- Set `debug=True` in League constructor to see all ESPN API requests/responses in console
+- For position inputs use: 'QB', 'RB', 'WR', 'TE', 'D/ST', 'K', 'FLEX'
+- For activity msg_type inputs use: 'FA', 'WAIVER', 'TRADED'
+- Owner name attributes only available for private leagues (public leagues won't show names)
+- Box scores only work with current season data
+- **Current year is 2025** - update all hardcoded years from 2024 to 2025
+- **Key method for standings: `league.standings()`** - returns sorted List[Team] by current standings

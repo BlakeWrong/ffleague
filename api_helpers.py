@@ -18,7 +18,7 @@ def get_league_stats():
 
         print("Creating League object...", file=sys.stderr)
         # Load current year league
-        league = League(league_id=LEAGUE_ID, year=2024, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
 
         print("Getting teams...", file=sys.stderr)
         # Get teams

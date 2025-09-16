@@ -41,16 +41,95 @@ async def root():
         "endpoints": [
             "/league/stats",
             "/league/stats/{year}",
+            "/standings",
             "/teams",
             "/teams/{year}",
             "/matchups/{week}",
-            "/matchups/{year}/{week}"
+            "/matchups/{year}/{week}",
+            "/bench-heroes/{year}/{week}"
         ]
     }
 
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "league_id": LEAGUE_ID}
+
+@app.get("/available-years")
+async def get_available_years():
+    """Get list of available years for the league"""
+    try:
+        league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
+
+        # Get current year and previous seasons
+        available_years = [2025]  # Current year
+
+        # Add previous seasons if available
+        if hasattr(league, 'previousSeasons') and league.previousSeasons:
+            for season in league.previousSeasons:
+                try:
+                    year = int(season)
+                    available_years.append(year)
+                except ValueError:
+                    continue
+
+        # Sort years in descending order (newest first)
+        available_years.sort(reverse=True)
+
+        # Filter to only include years 2019 and later for bench heroes compatibility
+        bench_heroes_years = [year for year in available_years if year >= 2019]
+
+        return {
+            "available_years": available_years,  # All years for other endpoints
+            "bench_heroes_years": bench_heroes_years,  # Only 2019+ for bench heroes
+            "total_years": len(available_years),
+            "current_year": 2025,
+            "current_week": league.current_week if hasattr(league, 'current_week') else 18
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch available years: {str(e)}")
+
+@app.get("/available-weeks/{year}")
+async def get_available_weeks(year: int):
+    """Get list of available weeks for a specific year"""
+    try:
+        if not (2019 <= year <= 2025):
+            raise HTTPException(status_code=400, detail="Year must be between 2019 and 2025")
+
+        league = League(league_id=LEAGUE_ID, year=year, espn_s2=ESPN_S2, swid=SWID, debug=False)
+
+        # For the current year (2025), limit to current week
+        if year == 2025:
+            current_week = league.current_week if hasattr(league, 'current_week') else 1
+            max_week = max(1, current_week)  # At least show week 1
+        else:
+            # For past years, check what weeks actually have data by trying a few key weeks
+            max_week = 17  # Default to full season for past years
+
+            # Try to determine actual season length by checking if week 17 has data
+            try:
+                box_scores_17 = league.box_scores(17)
+                if box_scores_17:
+                    max_week = 17
+                else:
+                    max_week = 16
+            except:
+                # If week 17 fails, try week 16
+                try:
+                    box_scores_16 = league.box_scores(16)
+                    max_week = 16 if box_scores_16 else 15
+                except:
+                    max_week = 15  # Conservative fallback
+
+        available_weeks = list(range(1, max_week + 1))
+
+        return {
+            "year": year,
+            "available_weeks": available_weeks,
+            "max_week": max_week,
+            "is_current_year": year == 2025
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch available weeks for {year}: {str(e)}")
 
 @app.get("/league/stats")
 async def get_current_league_stats():
@@ -77,7 +156,7 @@ async def get_league_stats_by_year(year: int):
 
         # Calculate average score
         total_points = sum(team.points_for for team in teams)
-        average_score = round(total_points / len(teams), 1) if teams else 0.0
+        average_score = round(total_points / len(teams), 2) if teams else 0.0
 
         return {
             "year": year,
@@ -92,11 +171,43 @@ async def get_league_stats_by_year(year: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch {year} league stats: {str(e)}")
 
+@app.get("/standings")
+async def get_current_standings():
+    """Get current season standings sorted by league position"""
+    try:
+        league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        standings = league.standings()  # Returns teams sorted by current standings
+
+        standings_data = []
+        for team in standings:
+            standings_data.append({
+                "rank": team.standing,
+                "team_id": team.team_id,
+                "team_name": team.team_name,
+                "owner": f"{team.owners[0].get('firstName', '')} {team.owners[0].get('lastName', '')}".strip() if team.owners and team.owners[0].get('firstName') else (team.owners[0]['displayName'] if team.owners else "Unknown"),
+                "wins": team.wins,
+                "losses": team.losses,
+                "ties": team.ties,
+                "points_for": round(team.points_for, 2),
+                "points_against": round(team.points_against, 2),
+                "streak_type": team.streak_type,
+                "streak_length": team.streak_length
+            })
+
+        return {
+            "year": 2025,
+            "current_week": league.current_week,
+            "standings": standings_data,
+            "total_teams": len(standings_data)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch standings: {str(e)}")
+
 @app.get("/teams")
 async def get_current_teams():
     """Get all teams for current season"""
     try:
-        league = League(league_id=LEAGUE_ID, year=2024, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
         teams = league.teams
 
         team_data = []
@@ -104,7 +215,7 @@ async def get_current_teams():
             team_data.append({
                 "team_id": team.team_id,
                 "team_name": team.team_name,
-                "owner": team.owner,
+                "owner": f"{team.owners[0].get('firstName', '')} {team.owners[0].get('lastName', '')}".strip() if team.owners and team.owners[0].get('firstName') else (team.owners[0]['displayName'] if team.owners else "Unknown"),
                 "wins": team.wins,
                 "losses": team.losses,
                 "points_for": team.points_for,
@@ -120,8 +231,8 @@ async def get_current_teams():
 async def get_teams_by_year(year: int):
     """Get all teams for a specific year"""
     try:
-        if not (2015 <= year <= 2024):
-            raise HTTPException(status_code=400, detail="Year must be between 2015 and 2024")
+        if not (2015 <= year <= 2025):
+            raise HTTPException(status_code=400, detail="Year must be between 2015 and 2025")
 
         league = League(league_id=LEAGUE_ID, year=year, espn_s2=ESPN_S2, swid=SWID, debug=False)
         teams = league.teams
@@ -131,7 +242,7 @@ async def get_teams_by_year(year: int):
             team_data.append({
                 "team_id": team.team_id,
                 "team_name": team.team_name,
-                "owner": team.owner,
+                "owner": f"{team.owners[0].get('firstName', '')} {team.owners[0].get('lastName', '')}".strip() if team.owners and team.owners[0].get('firstName') else (team.owners[0]['displayName'] if team.owners else "Unknown"),
                 "wins": team.wins,
                 "losses": team.losses,
                 "points_for": team.points_for,
@@ -150,7 +261,7 @@ async def get_current_matchups(week: int):
         if not (1 <= week <= 18):
             raise HTTPException(status_code=400, detail="Week must be between 1 and 18")
 
-        league = League(league_id=LEAGUE_ID, year=2024, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
         box_scores = league.box_scores(week)
 
         matchups = []
@@ -159,15 +270,15 @@ async def get_current_matchups(week: int):
                 "week": week,
                 "home_team": {
                     "name": box_score.home_team.team_name,
-                    "score": round(box_score.home_score, 1)
+                    "score": round(box_score.home_score, 2)
                 },
                 "away_team": {
                     "name": box_score.away_team.team_name,
-                    "score": round(box_score.away_score, 1)
+                    "score": round(box_score.away_score, 2)
                 }
             })
 
-        return {"week": week, "year": 2024, "matchups": matchups}
+        return {"week": week, "year": 2025, "matchups": matchups}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch week {week} matchups: {str(e)}")
 
@@ -189,17 +300,100 @@ async def get_matchups_by_year_week(year: int, week: int):
                 "week": week,
                 "home_team": {
                     "name": box_score.home_team.team_name,
-                    "score": round(box_score.home_score, 1)
+                    "score": round(box_score.home_score, 2)
                 },
                 "away_team": {
                     "name": box_score.away_team.team_name,
-                    "score": round(box_score.away_score, 1)
+                    "score": round(box_score.away_score, 2)
                 }
             })
 
         return {"week": week, "year": year, "matchups": matchups}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch {year} week {week} matchups: {str(e)}")
+
+@app.get("/bench-heroes/{year}/{week}")
+async def get_bench_heroes(year: int, week: int):
+    """Get top scoring bench players for a specific week and year"""
+    try:
+        if not (2019 <= year <= 2025):
+            raise HTTPException(status_code=400, detail="Bench heroes data is only available from 2019 onwards due to ESPN API limitations")
+        if not (1 <= week <= 18):
+            raise HTTPException(status_code=400, detail="Week must be between 1 and 18")
+
+        print(f"Fetching bench heroes for year={year}, week={week}", flush=True)
+
+        league = League(league_id=LEAGUE_ID, year=year, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        print(f"League created successfully for {year}", flush=True)
+
+        box_scores = league.box_scores(week)
+        print(f"Retrieved {len(box_scores) if box_scores else 0} box scores for week {week}", flush=True)
+
+        bench_players = []
+
+        for i, box_score in enumerate(box_scores):
+            try:
+                print(f"Processing box score {i+1}/{len(box_scores)}", flush=True)
+
+                # Process home team lineup
+                if hasattr(box_score, 'home_lineup') and box_score.home_lineup:
+                    for j, player in enumerate(box_score.home_lineup):
+                        try:
+                            # Check if player is on bench (slot_position contains "BE" or "Bench")
+                            if player.slot_position and ("BE" in player.slot_position.upper() or "BENCH" in player.slot_position.upper()):
+                                bench_players.append({
+                                    "player_name": player.name,
+                                    "points": round(player.points, 2),
+                                    "team_name": box_score.home_team.team_name,
+                                    "team_id": box_score.home_team.team_id,
+                                    "owner": f"{box_score.home_team.owners[0].get('firstName', '')} {box_score.home_team.owners[0].get('lastName', '')}".strip() if box_score.home_team.owners and box_score.home_team.owners[0].get('firstName') else (box_score.home_team.owners[0]['displayName'] if box_score.home_team.owners else "Unknown"),
+                                    "position": player.position,
+                                    "pro_team": player.proTeam if hasattr(player, 'proTeam') else "N/A"
+                                })
+                        except Exception as player_error:
+                            print(f"Error processing home player {j}: {str(player_error)}", flush=True)
+                            continue
+
+                # Process away team lineup
+                if hasattr(box_score, 'away_lineup') and box_score.away_lineup:
+                    for j, player in enumerate(box_score.away_lineup):
+                        try:
+                            # Check if player is on bench
+                            if player.slot_position and ("BE" in player.slot_position.upper() or "BENCH" in player.slot_position.upper()):
+                                bench_players.append({
+                                    "player_name": player.name,
+                                    "points": round(player.points, 2),
+                                    "team_name": box_score.away_team.team_name,
+                                    "team_id": box_score.away_team.team_id,
+                                    "owner": f"{box_score.away_team.owners[0].get('firstName', '')} {box_score.away_team.owners[0].get('lastName', '')}".strip() if box_score.away_team.owners and box_score.away_team.owners[0].get('firstName') else (box_score.away_team.owners[0]['displayName'] if box_score.away_team.owners else "Unknown"),
+                                    "position": player.position,
+                                    "pro_team": player.proTeam if hasattr(player, 'proTeam') else "N/A"
+                                })
+                        except Exception as player_error:
+                            print(f"Error processing away player {j}: {str(player_error)}", flush=True)
+                            continue
+
+            except Exception as box_score_error:
+                print(f"Error processing box score {i}: {str(box_score_error)}", flush=True)
+                continue
+
+        # Sort by points (highest first) and take top 5
+        bench_players.sort(key=lambda x: x['points'], reverse=True)
+        top_bench_players = bench_players[:5]
+
+        print(f"Successfully processed {len(bench_players)} total bench players", flush=True)
+
+        return {
+            "year": year,
+            "week": week,
+            "bench_heroes": top_bench_players,
+            "total_bench_players": len(bench_players)
+        }
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"ERROR in bench heroes endpoint: {error_details}", flush=True)
+        raise HTTPException(status_code=500, detail=f"Failed to fetch bench heroes for {year} week {week}: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
