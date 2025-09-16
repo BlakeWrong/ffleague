@@ -40,8 +40,8 @@ export function MatchupsSection({ currentWeek = 1, currentYear = 2025 }: Matchup
   const [matchupsData, setMatchupsData] = useState<MatchupsData | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | undefined>()
-  const [availableYears, setAvailableYears] = useState<number[]>([])
-  const [availableWeeks, setAvailableWeeks] = useState<number[]>([])
+  const [availableYears, setAvailableYears] = useState<number[]>([2025, 2024, 2023, 2022, 2021, 2020, 2019])
+  const [availableWeeks, setAvailableWeeks] = useState<number[]>([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17])
   const [weeksLoading, setWeeksLoading] = useState(false)
 
   // Initialize with current week/year
@@ -54,10 +54,18 @@ export function MatchupsSection({ currentWeek = 1, currentYear = 2025 }: Matchup
   useEffect(() => {
     async function fetchAvailableYears() {
       try {
+        console.log('Fetching available years...')
         const response = await fetch('/api/available-years')
+        console.log('Available years response status:', response.status)
         if (response.ok) {
           const data = await response.json()
-          setAvailableYears(data.years || [])
+          console.log('Available years data:', data)
+          if (data.years && data.years.length > 0) {
+            setAvailableYears(data.years)
+          }
+        } else {
+          const errorText = await response.text()
+          console.error('Failed to fetch available years:', response.status, errorText)
         }
       } catch (error) {
         console.error('Failed to fetch available years:', error)
@@ -72,10 +80,18 @@ export function MatchupsSection({ currentWeek = 1, currentYear = 2025 }: Matchup
     async function fetchAvailableWeeks() {
       setWeeksLoading(true)
       try {
+        console.log('Fetching available weeks for year:', selectedYear)
         const response = await fetch(`/api/available-weeks/${selectedYear}`)
+        console.log('Available weeks response status:', response.status)
         if (response.ok) {
           const data = await response.json()
-          setAvailableWeeks(data.weeks || [])
+          console.log('Available weeks data:', data)
+          if (data.weeks && data.weeks.length > 0) {
+            setAvailableWeeks(data.weeks)
+          }
+        } else {
+          const errorText = await response.text()
+          console.error('Failed to fetch available weeks:', response.status, errorText)
         }
       } catch (error) {
         console.error('Failed to fetch available weeks:', error)
