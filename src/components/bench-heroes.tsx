@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -152,7 +153,7 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
           <div>
             <CardTitle className="flex items-center gap-2 text-xl">
               <TrophyIcon className="h-5 w-5 text-yellow-500" />
-              <em>"Fuccck gronk on the bench"</em>
+              <em>&ldquo;Fuccck gronk on the bench&rdquo;</em>
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
               Top scoring bench players by week (because pain is eternal)
@@ -219,9 +220,11 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
                   </div>
 
                   {/* Screenshot */}
-                  <img
+                  <Image
                     src="/images/IMG_1651.PNG"
-                    alt="The legendary 'Fuccck gronk on the bench' group chat moment"
+                    alt="The legendary Fuccck gronk on the bench group chat moment"
+                    width={256}
+                    height={512}
                     className="w-full h-auto object-contain bg-white"
                   />
                 </div>
@@ -231,20 +234,20 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
             {/* Story Content */}
             <div className="flex-1">
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                📜 The Origin of "Fuccck gronk on the bench"
+                📜 The Origin of &ldquo;Fuccck gronk on the bench&rdquo;
               </h3>
 
               <div className="prose prose-sm dark:prose-invert max-w-none">
                 <p className="text-gray-700 dark:text-gray-300 mb-4">
                   On <strong>September 9, 2021 - Week 1</strong>, fantasy football history was written through technical mishap and pure suffering.
-                  Rob Gronkowski, riding Luke's bench in his return to fantasy relevance with Tom Brady and the Tampa Bay Buccaneers,
+                  Rob Gronkowski, riding Luke&apos;s bench in his return to fantasy relevance with Tom Brady and the Tampa Bay Buccaneers,
                   exploded for <strong>29.0 points</strong> of devastating bench production.
                 </p>
 
                 <p className="text-gray-700 dark:text-gray-300 mb-4">
-                  Luke's anguish was so profound that he texted the same lament four times due to a technical glitch,
+                  Luke&apos;s anguish was so profound that he texted the same lament four times due to a technical glitch,
                   accidentally creating the perfect meme. What started as a frustrated mistake became the eternal rallying cry:
-                  "Fuccck gronk on the bench" - forever immortalizing every fantasy manager's worst nightmare.
+                  &ldquo;Fuccck gronk on the bench&rdquo; - forever immortalizing every fantasy manager&apos;s worst nightmare.
                 </p>
 
                 <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 mb-4">
@@ -253,7 +256,7 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
                     <div><strong>Player:</strong> Rob Gronkowski (TE, Tampa Bay)</div>
                     <div><strong>Date:</strong> September 9, 2021 (Week 1)</div>
                     <div><strong>Points:</strong> 29.0 (absolutely devastating on the bench)</div>
-                    <div><strong>Victim:</strong> Luke Benedict ("Tyreek Hill's Daycare")</div>
+                    <div><strong>Victim:</strong> Luke Benedict (&ldquo;Tyreek Hill&apos;s Daycare&rdquo;)</div>
                   </div>
                   <a
                     href="https://fantasy.espn.com/football/boxscore?leagueId=1729198&matchupPeriodId=1&scoringPeriodId=1&seasonId=2021&teamId=3&view=scoringperiod"
@@ -359,7 +362,7 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
           <div className="text-center py-8 text-muted-foreground">
             <TrophyIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
             <p>Select a year and week to see which bench players would have won you the week.</p>
-            <p className="text-sm mt-1">Spoiler alert: it's always Gronk. 😭</p>
+            <p className="text-sm mt-1">Spoiler alert: it&apos;s always Gronk. 😭</p>
           </div>
         )}
       </CardContent>

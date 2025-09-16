@@ -120,7 +120,7 @@ export function StandingsTable({ standings, currentWeek, isLoading = false }: St
       <div className="p-4 border-t bg-muted/30 md:hidden">
         <div className="text-xs text-muted-foreground mb-2">Points For/Against (Top 3)</div>
         <div className="grid grid-cols-3 gap-2 text-xs">
-          {standings.slice(0, 3).map((team, index) => (
+          {standings.slice(0, 3).map((team) => (
             <div key={team.team_id} className="text-center">
               <div className="font-medium truncate">{team.team_name}</div>
               <div className="text-muted-foreground">{team.points_for.toFixed(2)}/{team.points_against.toFixed(2)}</div>
