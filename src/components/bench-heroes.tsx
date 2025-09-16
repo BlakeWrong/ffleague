@@ -225,6 +225,8 @@ export function BenchHeroes({ onDataRequest, data, isLoading, error }: BenchHero
                     alt="The legendary Fuccck gronk on the bench group chat moment"
                     width={256}
                     height={512}
+                    quality={100}
+                    unoptimized={true}
                     className="w-full h-auto object-contain bg-white"
                   />
                 </div>
