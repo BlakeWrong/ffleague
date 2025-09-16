@@ -51,6 +51,7 @@ interface BenchPlayer {
   player_name: string;
   points: number;
   team_name: string;
+  team_id: number;
   owner: string;
   position: string;
   pro_team: string;

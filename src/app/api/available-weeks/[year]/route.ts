@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET(request: NextRequest, { params }: { params: { year: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ year: string }> }) {
+  const { year } = await params
+
   try {
-    const year = params.year
     console.log(`Fetching available weeks for year ${year} from Python API...`);
 
     // Use different API URLs for development vs production
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest, { params }: { params: { year: st
     console.error('API Error:', error);
     return NextResponse.json(
       {
-        error: `Failed to fetch available weeks for year ${params.year} from Python API`,
+        error: `Failed to fetch available weeks for year ${year} from Python API`,
         message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
