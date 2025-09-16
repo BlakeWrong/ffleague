@@ -1,23 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readFile } from 'fs/promises'
-import { join } from 'path'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Reading league data from JSON file...');
+    console.log('Fetching league data from Python API...');
 
-    // Read the pre-generated league data
-    const filePath = join(process.cwd(), 'league_data.json');
-    const fileContent = await readFile(filePath, 'utf8');
-    const data = JSON.parse(fileContent);
+    // Get the year parameter if provided
+    const { searchParams } = new URL(request.url);
+    const year = searchParams.get('year');
 
-    console.log('Successfully read league data');
+    // Use different API URLs for development vs production
+    const isProd = process.env.NODE_ENV === 'production';
+    const herokuPort = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+    const pythonPort = isProd ? (herokuPort + 1) : 8001;
+    const pythonBaseUrl = `http://localhost:${pythonPort}`;
+
+    // Determine which Python API endpoint to call
+    const pythonApiUrl = year
+      ? `${pythonBaseUrl}/league/stats/${year}`
+      : `${pythonBaseUrl}/league/stats`;
+
+    console.log('Calling:', pythonApiUrl);
+
+    const response = await fetch(pythonApiUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Python API returned ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('Successfully fetched league data from Python API');
     return NextResponse.json(data);
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json(
       {
-        error: 'Failed to read league data',
+        error: 'Failed to fetch league data from Python API',
         message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }

@@ -1,0 +1,1 @@
+web: concurrently "npm run start" "python python_api/app.py"

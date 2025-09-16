@@ -1,9 +1,11 @@
 {
   "name": "frontend",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
+    "dev:python": "cd python_api && python3 app.py",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:python\"",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint"
@@ -15,6 +17,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "concurrently": "^9.2.1",
     "lucide-react": "^0.544.0",
     "next": "15.5.3",
     "react": "19.1.0",
