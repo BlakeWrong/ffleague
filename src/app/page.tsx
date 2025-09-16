@@ -261,6 +261,9 @@ export default function Home() {
           <Separator />
 
           <section>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+              <em>Fuccck gronk on the bench</em>
+            </h2>
             <BenchHeroes
               onDataRequest={handleBenchHeroesRequest}
               data={benchHeroesData}
