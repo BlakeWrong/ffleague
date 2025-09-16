@@ -16,7 +16,12 @@ export const metadata: Metadata = {
   title: "Show Me Your TDs",
   description: "Where Sports N Shit becomes a battlefield",
   icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏈</text></svg>",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-16x16.png", type: "image/png", sizes: "16x16" }
+    ],
+    apple: "/apple-touch-icon.png"
   },
   openGraph: {
     title: "Show Me Your TDs",
