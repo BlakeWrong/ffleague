@@ -162,7 +162,7 @@ export default function Home() {
             <div className="flex items-center space-x-2">
               <Trophy className="h-8 w-8 text-blue-600" />
               <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
-                FF League test2
+                Show Me Your TDs
               </h1>
             </div>
             <Badge variant="outline" className="text-xs sm:text-sm">
