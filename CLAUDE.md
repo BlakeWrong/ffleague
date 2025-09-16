@@ -6,7 +6,7 @@ A comprehensive fantasy football analytics platform that connects to ESPN Fantas
 ## Tech Stack
 - **Frontend**: Next.js 15 with shadcn/ui components, TypeScript, Tailwind CSS
 - **Backend**: Python FastAPI with ESPN API integration
-- **Deployment**: Vercel for frontend, Python API for backend
+- **Deployment**: Heroku full-stack deployment with both frontend and backend
 - **ESPN Integration**: `espn-api` Python library for real fantasy football data
 
 ## Project Structure
@@ -80,9 +80,11 @@ git push heroku development:main
 
 **Configuration:**
 - `Procfile`: Runs both Next.js and Python API concurrently using `concurrently`
+- `package.json`: Contains `concurrently` in production dependencies for Heroku
 - `python_api/requirements.txt`: Python dependencies for FastAPI and ESPN integration
-- Dynamic port handling for Heroku's assigned PORT
+- Dynamic port handling for Heroku's assigned PORT (Next.js on PORT, Python on PORT+1)
 - Next.js API routes proxy to Python API running on same dyno
+- Both buildpacks configured: `heroku/nodejs` and `heroku/python`
 
 ## Environment Variables Required
 - `LEAGUE_ID` - ESPN Fantasy League ID
@@ -111,10 +113,20 @@ The user wants to build a comprehensive fantasy football analytics platform with
 - Used Next.js API routes as proxy to Python backend for seamless integration
 - Implemented proper error handling and validation in Python API
 - Set up concurrent development environment for efficient full-stack development
+- **Successfully deployed to Heroku** with full-stack configuration
+- Resolved port conflicts between Next.js and Python API in production
+- Moved `concurrently` to production dependencies for Heroku compatibility
 
-## Current Status
+## Current Status - Version 0.0.1 Production Ready
 - ✅ Basic ESPN integration working with real league data
 - ✅ Multiple Python API endpoints functional
 - ✅ Frontend displaying real fantasy football data
 - ✅ Development workflow established
+- ✅ **PRODUCTION DEPLOYMENT WORKING** on Heroku
+- ✅ Full-stack Next.js + Python FastAPI deployed and integrated
+- ✅ Port management and buildpack configuration resolved
 - 🚧 Ready for expansion with advanced analytics and additional features
+
+## Production URL
+- **Live Application**: https://ffleague-fc3c9309ff7b.herokuapp.com/
+- **Status**: Fully functional with both frontend and backend APIs
