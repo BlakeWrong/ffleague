@@ -1,23 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-interface RouteParams {
-  params: Promise<{
-    week: string;
-  }>;
-}
-
-export async function GET(
-  request: NextRequest,
-  { params }: RouteParams
-) {
+export async function GET(request: NextRequest) {
   try {
-    const { week } = await params;
+    const { searchParams } = new URL(request.url);
+    const year = searchParams.get('year');
+    const week = searchParams.get('week');
+
+    if (!week) {
+      return NextResponse.json(
+        { error: 'Week parameter is required' },
+        { status: 400 }
+      );
+    }
 
     const pythonApiUrl = process.env.NODE_ENV === 'production'
       ? `http://localhost:${parseInt(process.env.PORT || '3000') + 1}`
       : 'http://localhost:8001';
 
-    const response = await fetch(`${pythonApiUrl}/matchups/${week}`, {
+    let apiPath: string;
+    if (year) {
+      apiPath = `/matchups/${year}/${week}`;
+    } else {
+      apiPath = `/matchups/${week}`;
+    }
+
+    const response = await fetch(`${pythonApiUrl}${apiPath}`, {
       headers: {
         'Content-Type': 'application/json',
       },

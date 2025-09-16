@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
 import { CalendarIcon, TrophyIcon } from "lucide-react"
 
 interface Team {
@@ -87,22 +86,15 @@ export function MatchupsSection({ currentWeek = 1, currentYear = 2025 }: Matchup
     fetchAvailableWeeks()
   }, [selectedYear])
 
-  // Auto-fetch matchups when component mounts or selections change
-  useEffect(() => {
-    if (selectedYear && selectedWeek) {
-      fetchMatchups(parseInt(selectedYear), parseInt(selectedWeek))
-    }
-  }, [selectedYear, selectedWeek])
-
-  const fetchMatchups = async (year: number, week: number) => {
+  const fetchMatchups = useCallback(async (year: number, week: number) => {
     setIsLoading(true)
     setError(undefined)
     try {
       let url: string
       if (year === currentYear) {
-        url = `/api/matchups/${week}`
+        url = `/api/matchups?week=${week}`
       } else {
-        url = `/api/matchups/${year}/${week}`
+        url = `/api/matchups?year=${year}&week=${week}`
       }
 
       const response = await fetch(url)
@@ -119,7 +111,14 @@ export function MatchupsSection({ currentWeek = 1, currentYear = 2025 }: Matchup
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [currentYear])
+
+  // Auto-fetch matchups when component mounts or selections change
+  useEffect(() => {
+    if (selectedYear && selectedWeek) {
+      fetchMatchups(parseInt(selectedYear), parseInt(selectedWeek))
+    }
+  }, [selectedYear, selectedWeek, fetchMatchups])
 
   const getWinner = (matchup: Matchup) => {
     if (matchup.home_team.score > matchup.away_team.score) return 'home'
