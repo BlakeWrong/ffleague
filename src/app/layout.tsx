@@ -18,6 +18,18 @@ export const metadata: Metadata = {
   icons: {
     icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏈</text></svg>",
   },
+  openGraph: {
+    title: "Show Me Your TDs",
+    description: "Where Sports N Shit becomes a battlefield",
+    type: "website",
+    url: "https://ffleague-fc3c9309ff7b.herokuapp.com",
+    siteName: "Show Me Your TDs",
+  },
+  twitter: {
+    card: "summary",
+    title: "Show Me Your TDs",
+    description: "Where Sports N Shit becomes a battlefield",
+  },
 };
 
 export default function RootLayout({
