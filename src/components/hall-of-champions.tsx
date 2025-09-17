@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Trophy, Medal, Award, Crown } from "lucide-react"
+import { queuedFetch } from "@/lib/api-queue"
 
 interface Champion {
   place: number
@@ -39,7 +40,7 @@ export function HallOfChampions({ currentYear = 2025 }: HallOfChampionsProps) {
     setLoading(true)
     try {
       console.log('Fetching champions for year:', year)
-      const response = await fetch(`/api/champions?year=${year}`)
+      const response = await queuedFetch(`/api/champions?year=${year}`)
       console.log('Champions response status:', response.status)
 
       if (response.ok) {
@@ -62,7 +63,7 @@ export function HallOfChampions({ currentYear = 2025 }: HallOfChampionsProps) {
     const fetchAvailableYears = async () => {
       try {
         console.log('Fetching available years for champions')
-        const response = await fetch('/api/available-years')
+        const response = await queuedFetch('/api/available-years')
         console.log('Available years response status:', response.status)
         if (response.ok) {
           const data = await response.json()

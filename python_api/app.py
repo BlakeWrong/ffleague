@@ -9,6 +9,9 @@ from dotenv import load_dotenv
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from api_helpers import get_league_stats
 from espn_api.football import League
+from cache_setup import cached_endpoint, get_cache_stats, clear_cache
+
+# Caching is now handled by decorators in cache_setup.py
 
 # Load environment variables
 load_dotenv()
@@ -54,7 +57,19 @@ async def root():
 async def health_check():
     return {"status": "healthy", "league_id": LEAGUE_ID}
 
+@app.get("/cache-stats")
+async def cache_stats():
+    """Get cache statistics and status"""
+    return get_cache_stats()
+
+@app.post("/cache-clear")
+async def cache_clear():
+    """Clear all cache entries"""
+    clear_cache()
+    return {"message": "Cache cleared successfully"}
+
 @app.get("/available-years")
+@cached_endpoint("/available-years")
 async def get_available_years():
     """Get list of available years for the league"""
     try:
@@ -303,6 +318,7 @@ async def get_champions_by_year(year: int):
         raise HTTPException(status_code=500, detail=f"Failed to fetch champions for {year}: {str(e)}")
 
 @app.get("/team-legacy")
+@cached_endpoint("/team-legacy")
 async def get_team_legacy():
     """Get comprehensive team history and legacy data across all years"""
     try:
@@ -456,6 +472,204 @@ async def get_team_legacy():
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch team legacy data: {str(e)}")
+
+@app.get("/streak-records")
+@cached_endpoint("/streak-records")
+async def get_streak_records(year: int = None):
+    """Get winning and losing streak records, either all-time or for a specific year"""
+    try:
+        # Get available years first
+        league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        available_years = [2025]
+
+        if hasattr(league, 'previousSeasons') and league.previousSeasons:
+            for season in league.previousSeasons:
+                try:
+                    season_year = int(season)
+                    available_years.append(season_year)
+                except ValueError:
+                    continue
+
+        available_years.sort(reverse=True)
+
+        # Collect game results for streak analysis
+        all_games = []
+
+        years_to_analyze = [year] if year else available_years
+
+        for analysis_year in years_to_analyze:
+            try:
+                year_league = League(league_id=LEAGUE_ID, year=analysis_year, espn_s2=ESPN_S2, swid=SWID, debug=False)
+
+                # For current year (2025), only get completed weeks, for past years get all weeks
+                max_week = 17 if analysis_year < 2025 else (year_league.current_week if hasattr(year_league, 'current_week') and year_league.current_week else 17)
+
+                for week in range(1, max_week + 1):
+                    try:
+                        matchups = year_league.box_scores(week)
+
+                        # Skip weeks with no matchups or incomplete games
+                        if not matchups:
+                            continue
+
+                        # For current year, check if games are actually completed
+                        if analysis_year == 2025:
+                            # Check if any game has meaningful scores (both teams > 0)
+                            has_completed_games = any(
+                                matchup.home_score > 0 and matchup.away_score > 0
+                                for matchup in matchups
+                            )
+                            if not has_completed_games:
+                                continue
+
+                        for matchup in matchups:
+                            # Home team result
+                            home_result = "W" if matchup.home_score > matchup.away_score else "L"
+                            all_games.append({
+                                "year": analysis_year,
+                                "week": week,
+                                "team_id": matchup.home_team.team_id,
+                                "team_name": matchup.home_team.team_name,
+                                "owner": f"{matchup.home_team.owners[0].get('firstName', '')} {matchup.home_team.owners[0].get('lastName', '')}".strip() if matchup.home_team.owners and matchup.home_team.owners[0].get('firstName') else (matchup.home_team.owners[0]['displayName'] if matchup.home_team.owners else f"Team_{matchup.home_team.team_id}"),
+                                "result": home_result,
+                                "score": matchup.home_score,
+                                "opponent_score": matchup.away_score
+                            })
+
+                            # Away team result
+                            away_result = "W" if matchup.away_score > matchup.home_score else "L"
+                            all_games.append({
+                                "year": analysis_year,
+                                "week": week,
+                                "team_id": matchup.away_team.team_id,
+                                "team_name": matchup.away_team.team_name,
+                                "owner": f"{matchup.away_team.owners[0].get('firstName', '')} {matchup.away_team.owners[0].get('lastName', '')}".strip() if matchup.away_team.owners and matchup.away_team.owners[0].get('firstName') else (matchup.away_team.owners[0]['displayName'] if matchup.away_team.owners else f"Team_{matchup.away_team.team_id}"),
+                                "result": away_result,
+                                "score": matchup.away_score,
+                                "opponent_score": matchup.home_score
+                            })
+
+                    except Exception as e:
+                        # Week might not exist or have data
+                        continue
+
+            except Exception as e:
+                print(f"Error processing year {analysis_year}: {e}")
+                continue
+
+        # Sort games chronologically for streak analysis
+        all_games.sort(key=lambda x: (x["year"], x["week"]))
+
+        # Analyze streaks by owner (consistent across team name changes)
+        owner_games = {}
+        for game in all_games:
+            owner = game["owner"]
+            if owner not in owner_games:
+                owner_games[owner] = []
+            owner_games[owner].append(game)
+
+        # Calculate streaks for each owner
+        streak_records = {
+            "longest_win_streaks": [],
+            "longest_loss_streaks": [],
+            "current_streaks": []
+        }
+
+        for owner, games in owner_games.items():
+            # Calculate all streaks for this owner
+            win_streaks = []
+            loss_streaks = []
+            current_streak = {"type": None, "length": 0, "games": []}
+
+            for game in games:
+                if current_streak["type"] == game["result"]:
+                    # Continue current streak
+                    current_streak["length"] += 1
+                    current_streak["games"].append(game)
+                else:
+                    # Streak ended, record it
+                    if current_streak["type"] and current_streak["length"] > 0:
+                        streak_data = {
+                            "owner": owner,
+                            "team_names": list(set([g["team_name"] for g in current_streak["games"]])),
+                            "length": current_streak["length"],
+                            "start_year": current_streak["games"][0]["year"],
+                            "start_week": current_streak["games"][0]["week"],
+                            "end_year": current_streak["games"][-1]["year"],
+                            "end_week": current_streak["games"][-1]["week"],
+                            "games": current_streak["games"]
+                        }
+
+                        if current_streak["type"] == "W":
+                            win_streaks.append(streak_data)
+                        else:
+                            loss_streaks.append(streak_data)
+
+                    # Start new streak
+                    current_streak = {
+                        "type": game["result"],
+                        "length": 1,
+                        "games": [game]
+                    }
+
+            # Don't forget the last streak
+            if current_streak["type"] and current_streak["length"] > 0:
+                streak_data = {
+                    "owner": owner,
+                    "team_names": list(set([g["team_name"] for g in current_streak["games"]])),
+                    "length": current_streak["length"],
+                    "start_year": current_streak["games"][0]["year"],
+                    "start_week": current_streak["games"][0]["week"],
+                    "end_year": current_streak["games"][-1]["year"],
+                    "end_week": current_streak["games"][-1]["week"],
+                    "games": current_streak["games"],
+                    "is_current": True  # Mark current streaks
+                }
+
+                if current_streak["type"] == "W":
+                    win_streaks.append(streak_data)
+                    streak_records["current_streaks"].append(streak_data)
+                else:
+                    loss_streaks.append(streak_data)
+                    streak_records["current_streaks"].append(streak_data)
+
+            # Add to overall records
+            streak_records["longest_win_streaks"].extend(win_streaks)
+            streak_records["longest_loss_streaks"].extend(loss_streaks)
+
+        # Sort and get top streaks
+        streak_records["longest_win_streaks"].sort(key=lambda x: x["length"], reverse=True)
+        streak_records["longest_loss_streaks"].sort(key=lambda x: x["length"], reverse=True)
+
+        # Filter current streaks to only include current season participants and 3+ streaks
+        filtered_current_streaks = []
+        if not year:  # Only for all-time queries
+            # Get current season participants
+            current_league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
+            current_owners = set()
+            for team in current_league.teams:
+                owner_name = f"{team.owners[0].get('firstName', '')} {team.owners[0].get('lastName', '')}".strip() if team.owners and team.owners[0].get('firstName') else (team.owners[0]['displayName'] if team.owners else f"Team_{team.team_id}")
+                current_owners.add(owner_name)
+
+            # Filter current streaks
+            for streak in streak_records["current_streaks"]:
+                if (streak.get("is_current") and
+                    streak["owner"] in current_owners and
+                    streak["length"] >= 3):
+                    filtered_current_streaks.append(streak)
+
+        return {
+            "analysis_type": "single_season" if year else "all_time",
+            "year": year,
+            "years_analyzed": years_to_analyze,
+            "longest_win_streaks": streak_records["longest_win_streaks"][:5],  # Top 5
+            "longest_loss_streaks": streak_records["longest_loss_streaks"][:5],  # Top 5
+            "current_streaks": filtered_current_streaks,
+            "total_games_analyzed": len(all_games)
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch streak records: {str(e)}")
 
 @app.get("/teams/{year}")
 async def get_teams_by_year(year: int):

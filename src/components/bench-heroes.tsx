@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { TrophyIcon, CalendarIcon, ExternalLinkIcon } from "lucide-react"
+import { queuedFetch } from "@/lib/api-queue"
 
 interface BenchPlayer {
   player_name: string
@@ -50,14 +51,14 @@ export function BenchHeroes({ currentWeek = 1, currentYear = 2025 }: BenchHeroes
     async function fetchData() {
       try {
         // Fetch league ID
-        const healthResponse = await fetch('/api/health')
+        const healthResponse = await queuedFetch('/api/health')
         if (healthResponse.ok) {
           const healthData = await healthResponse.json()
           setLeagueId(healthData.league_id)
         }
 
         // Fetch available years
-        const yearsResponse = await fetch('/api/available-years')
+        const yearsResponse = await queuedFetch('/api/available-years')
         if (yearsResponse.ok) {
           const yearsData = await yearsResponse.json()
           const allYears = yearsData.supported_years || yearsData.available_years || []
@@ -88,7 +89,7 @@ export function BenchHeroes({ currentWeek = 1, currentYear = 2025 }: BenchHeroes
 
       setWeeksLoading(true)
       try {
-        const response = await fetch(`/api/available-weeks/${selectedYear}`)
+        const response = await queuedFetch(`/api/available-weeks/${selectedYear}`)
         if (response.ok) {
           const data = await response.json()
           setAvailableWeeks(data.available_weeks || [])
@@ -119,7 +120,7 @@ export function BenchHeroes({ currentWeek = 1, currentYear = 2025 }: BenchHeroes
     setError(undefined)
     try {
       console.log('Fetching bench heroes for:', year, week)
-      const response = await fetch(`/api/bench-heroes?year=${year}&week=${week}`, {
+      const response = await queuedFetch(`/api/bench-heroes?year=${year}&week=${week}`, {
         cache: 'no-store',
       })
       console.log('Bench heroes response status:', response.status)
