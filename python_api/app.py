@@ -671,6 +671,196 @@ async def get_streak_records(year: int = None):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch streak records: {str(e)}")
 
+@app.get("/luck-analysis")
+@cached_endpoint("/luck-analysis")
+async def get_luck_analysis():
+    """Get luck analysis showing teams that most outperformed/underperformed projections"""
+    try:
+        # Get available years
+        league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        available_years = [2025]
+
+        if hasattr(league, 'previousSeasons') and league.previousSeasons:
+            for season in league.previousSeasons:
+                try:
+                    season_year = int(season)
+                    available_years.append(season_year)
+                except ValueError:
+                    continue
+
+        available_years.sort(reverse=True)
+
+        # Collect luck data
+        season_luck_data = []
+        single_matchup_luck = []
+
+        for analysis_year in available_years:
+            try:
+                year_league = League(league_id=LEAGUE_ID, year=analysis_year, espn_s2=ESPN_S2, swid=SWID, debug=False)
+
+                # For current year (2025), only get completed weeks, for past years get all weeks
+                max_week = 17 if analysis_year < 2025 else (year_league.current_week if hasattr(year_league, 'current_week') and year_league.current_week else 17)
+
+                season_team_luck = {}  # team_id -> luck stats for the season
+
+                for week in range(1, max_week + 1):
+                    try:
+                        matchups = year_league.box_scores(week)
+
+                        # Skip weeks with no matchups or incomplete games
+                        if not matchups:
+                            continue
+
+                        # For current year, check if games are actually completed
+                        if analysis_year == 2025:
+                            has_completed_games = any(
+                                matchup.home_score > 0 and matchup.away_score > 0
+                                for matchup in matchups
+                            )
+                            if not has_completed_games:
+                                continue
+
+                        for matchup in matchups:
+                            # Calculate luck for home team
+                            home_projected_margin = matchup.home_projected - matchup.away_projected
+                            home_actual_margin = matchup.home_score - matchup.away_score
+                            home_luck = home_actual_margin - home_projected_margin
+
+                            # Calculate luck for away team (opposite of home)
+                            away_luck = -home_luck
+
+                            # Track season totals
+                            home_id = matchup.home_team.team_id
+                            away_id = matchup.away_team.team_id
+
+                            if home_id not in season_team_luck:
+                                season_team_luck[home_id] = {
+                                    "team_name": matchup.home_team.team_name,
+                                    "owner": f"{matchup.home_team.owners[0].get('firstName', '')} {matchup.home_team.owners[0].get('lastName', '')}".strip() if matchup.home_team.owners and matchup.home_team.owners[0].get('firstName') else (matchup.home_team.owners[0]['displayName'] if matchup.home_team.owners else f"Team_{matchup.home_team.team_id}"),
+                                    "total_luck": 0,
+                                    "games_played": 0,
+                                    "biggest_lucky_game": {"luck": 0, "week": 0, "opponent": "", "margin": 0},
+                                    "biggest_unlucky_game": {"luck": 0, "week": 0, "opponent": "", "margin": 0}
+                                }
+
+                            if away_id not in season_team_luck:
+                                season_team_luck[away_id] = {
+                                    "team_name": matchup.away_team.team_name,
+                                    "owner": f"{matchup.away_team.owners[0].get('firstName', '')} {matchup.away_team.owners[0].get('lastName', '')}".strip() if matchup.away_team.owners and matchup.away_team.owners[0].get('firstName') else (matchup.away_team.owners[0]['displayName'] if matchup.away_team.owners else f"Team_{matchup.away_team.team_id}"),
+                                    "total_luck": 0,
+                                    "games_played": 0,
+                                    "biggest_lucky_game": {"luck": 0, "week": 0, "opponent": "", "margin": 0},
+                                    "biggest_unlucky_game": {"luck": 0, "week": 0, "opponent": "", "margin": 0}
+                                }
+
+                            # Update season totals
+                            season_team_luck[home_id]["total_luck"] += home_luck
+                            season_team_luck[home_id]["games_played"] += 1
+                            season_team_luck[away_id]["total_luck"] += away_luck
+                            season_team_luck[away_id]["games_played"] += 1
+
+                            # Track biggest lucky/unlucky games for the season
+                            if home_luck > season_team_luck[home_id]["biggest_lucky_game"]["luck"]:
+                                season_team_luck[home_id]["biggest_lucky_game"] = {
+                                    "luck": home_luck,
+                                    "week": week,
+                                    "opponent": matchup.away_team.team_name,
+                                    "margin": home_actual_margin
+                                }
+                            if home_luck < season_team_luck[home_id]["biggest_unlucky_game"]["luck"]:
+                                season_team_luck[home_id]["biggest_unlucky_game"] = {
+                                    "luck": home_luck,
+                                    "week": week,
+                                    "opponent": matchup.away_team.team_name,
+                                    "margin": home_actual_margin
+                                }
+
+                            if away_luck > season_team_luck[away_id]["biggest_lucky_game"]["luck"]:
+                                season_team_luck[away_id]["biggest_lucky_game"] = {
+                                    "luck": away_luck,
+                                    "week": week,
+                                    "opponent": matchup.home_team.team_name,
+                                    "margin": -home_actual_margin
+                                }
+                            if away_luck < season_team_luck[away_id]["biggest_unlucky_game"]["luck"]:
+                                season_team_luck[away_id]["biggest_unlucky_game"] = {
+                                    "luck": away_luck,
+                                    "week": week,
+                                    "opponent": matchup.home_team.team_name,
+                                    "margin": -home_actual_margin
+                                }
+
+                            # Track single matchups for overall analysis
+                            single_matchup_luck.append({
+                                "year": analysis_year,
+                                "week": week,
+                                "team_name": matchup.home_team.team_name,
+                                "owner": f"{matchup.home_team.owners[0].get('firstName', '')} {matchup.home_team.owners[0].get('lastName', '')}".strip() if matchup.home_team.owners and matchup.home_team.owners[0].get('firstName') else (matchup.home_team.owners[0]['displayName'] if matchup.home_team.owners else f"Team_{matchup.home_team.team_id}"),
+                                "opponent": matchup.away_team.team_name,
+                                "luck": home_luck,
+                                "actual_score": matchup.home_score,
+                                "projected_score": matchup.home_projected,
+                                "opponent_actual": matchup.away_score,
+                                "opponent_projected": matchup.away_projected,
+                                "actual_margin": home_actual_margin,
+                                "projected_margin": home_projected_margin
+                            })
+
+                            single_matchup_luck.append({
+                                "year": analysis_year,
+                                "week": week,
+                                "team_name": matchup.away_team.team_name,
+                                "owner": f"{matchup.away_team.owners[0].get('firstName', '')} {matchup.away_team.owners[0].get('lastName', '')}".strip() if matchup.away_team.owners and matchup.away_team.owners[0].get('firstName') else (matchup.away_team.owners[0]['displayName'] if matchup.away_team.owners else f"Team_{matchup.away_team.team_id}"),
+                                "opponent": matchup.home_team.team_name,
+                                "luck": away_luck,
+                                "actual_score": matchup.away_score,
+                                "projected_score": matchup.away_projected,
+                                "opponent_actual": matchup.home_score,
+                                "opponent_projected": matchup.home_projected,
+                                "actual_margin": -home_actual_margin,
+                                "projected_margin": -home_projected_margin
+                            })
+
+                    except Exception as week_error:
+                        print(f"Error processing {analysis_year} week {week}: {str(week_error)}", flush=True)
+                        continue
+
+                # Add season data with averages
+                for team_id, data in season_team_luck.items():
+                    if data["games_played"] > 0:
+                        season_luck_data.append({
+                            "year": analysis_year,
+                            "team_name": data["team_name"],
+                            "owner": data["owner"],
+                            "total_luck": round(data["total_luck"], 2),
+                            "average_luck": round(data["total_luck"] / data["games_played"], 2),
+                            "games_played": data["games_played"],
+                            "biggest_lucky_game": data["biggest_lucky_game"],
+                            "biggest_unlucky_game": data["biggest_unlucky_game"]
+                        })
+
+            except Exception as year_error:
+                print(f"Error processing {analysis_year}: {str(year_error)}", flush=True)
+                continue
+
+        # Sort and get top results
+        luckiest_seasons = sorted(season_luck_data, key=lambda x: x["total_luck"], reverse=True)[:3]
+        unluckiest_seasons = sorted(season_luck_data, key=lambda x: x["total_luck"])[:3]
+        luckiest_single_matchups = sorted(single_matchup_luck, key=lambda x: x["luck"], reverse=True)[:5]
+        unluckiest_single_matchups = sorted(single_matchup_luck, key=lambda x: x["luck"])[:5]
+
+        return {
+            "luckiest_seasons": luckiest_seasons,
+            "unluckiest_seasons": unluckiest_seasons,
+            "luckiest_single_matchups": luckiest_single_matchups,
+            "unluckiest_single_matchups": unluckiest_single_matchups,
+            "total_seasons_analyzed": len(available_years),
+            "total_matchups_analyzed": len(single_matchup_luck)
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch luck analysis: {str(e)}")
+
 @app.get("/teams/{year}")
 async def get_teams_by_year(year: int):
     """Get all teams for a specific year"""
