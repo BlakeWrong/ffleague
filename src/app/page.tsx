@@ -9,8 +9,10 @@ import { BenchHeroes } from "@/components/bench-heroes";
 import { MatchupsSection } from "@/components/matchups-section";
 import { HallOfChampions } from "@/components/hall-of-champions";
 import { TeamLegacy } from "@/components/team-legacy";
+import { StreakRecords } from "@/components/streak-records";
 import { Trophy, Users, TrendingUp, Calendar } from "lucide-react";
 import { useEffect, useState } from "react";
+import { queuedFetch, PRIORITY } from "@/lib/api-queue";
 
 interface LeagueData {
   total_teams: number;
@@ -61,8 +63,11 @@ export default function Home() {
       try {
         console.log('Fetching from:', '/api/league-stats');
 
-        const response = await fetch('/api/league-stats', {
+        const response = await queuedFetch('/api/league-stats', {
           cache: 'no-store',
+        }, {
+          priority: PRIORITY.CRITICAL,
+          component: 'HomePage-LeagueStats'
         });
 
         console.log('Response status:', response.status);
@@ -84,8 +89,11 @@ export default function Home() {
       try {
         console.log('Fetching standings from:', '/api/standings');
 
-        const response = await fetch('/api/standings', {
+        const response = await queuedFetch('/api/standings', {
           cache: 'no-store',
+        }, {
+          priority: PRIORITY.CRITICAL,
+          component: 'HomePage-Standings'
         });
 
         console.log('Standings response status:', response.status);
@@ -164,6 +172,15 @@ export default function Home() {
               <em>Team Legacy Rankings</em>
             </h2>
             <TeamLegacy />
+          </section>
+
+          <Separator />
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+              <em>Streak Records</em>
+            </h2>
+            <StreakRecords />
           </section>
 
           <Separator />

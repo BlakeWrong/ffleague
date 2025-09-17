@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { BarChart3, Trophy, Medal, Award, TrendingUp, TrendingDown, Minus, History } from "lucide-react"
+import { queuedFetch } from "@/lib/api-queue"
 
 interface TeamPlacement {
   year: number
@@ -54,7 +55,7 @@ export function TeamLegacy() {
     setLoading(true)
     try {
       console.log('Fetching team legacy data')
-      const response = await fetch('/api/team-legacy')
+      const response = await queuedFetch('/api/team-legacy')
       console.log('Team legacy response status:', response.status)
 
       if (response.ok) {

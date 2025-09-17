@@ -26,7 +26,9 @@ A comprehensive fantasy football analytics platform that connects to ESPN Fantas
 ### Frontend (Next.js + shadcn/ui)
 - **"Show Me Your TDs"** branding with custom football favicon
 - Mobile-first responsive design with glassmorphism effects
-- Real-time ESPN league data display with 2025 season support
+- Real-time ESPN league data display
+- **API request queue system** for performance optimization
+
 - League statistics dashboard with:
   - Current week and total teams (2025 season data)
   - League leader with record
@@ -37,24 +39,107 @@ A comprehensive fantasy football analytics platform that connects to ESPN Fantas
 - Open Graph metadata for rich link previews in social apps
 - Multiple favicon formats for cross-platform compatibility
 
+#### Frontend API Queue System
+The application implements a sophisticated API request queue to prevent server overload and optimize performance.
+
+**Implementation:**
+- **File:** `src/lib/api-queue.ts`
+- **Purpose:** Serializes API calls to prevent multiple simultaneous requests
+- **Features:** Priority controls, ordering options, monitoring capabilities
+
+**Usage Example:**
+```typescript
+import { queuedFetch, PRIORITY } from "@/lib/api-queue"
+
+const response = await queuedFetch('/api/streak-records', {
+  cache: 'no-store',
+}, {
+  priority: PRIORITY.CRITICAL,
+  component: 'StreakRecords'
+});
+```
+
+**Priority Levels:**
+- `PRIORITY.CRITICAL` (1) - League stats, standings
+- `PRIORITY.HIGH` (2) - User-facing data
+- `PRIORITY.NORMAL` (5) - Default priority
+- `PRIORITY.LOW` (8) - Background data
+- `PRIORITY.LOWEST` (10) - Non-essential data
+
+**Queue Management:**
+- Sequential processing with configurable delays
+- Component-based tracking and monitoring
+- Multiple ordering strategies (priority, FIFO, LIFO, component-grouped)
+- Real-time queue status and monitoring
+
 ### Backend (Python FastAPI)
 - **Multiple ESPN API endpoints** for different data needs
 - **Historical data support** (2015-2025 seasons)
 - **Real ESPN integration** using `espn-api` library
+- **Server-side caching system** with configurable TTL for optimal performance
+
+#### Server-Side Caching System
+The application implements a comprehensive server-side caching system using a decorator pattern to optimize ESPN API calls and improve performance.
+
+**Cache Implementation:**
+- **File:** `python_api/cache_setup.py`
+- **Storage:** In-memory dictionary (resets on server restart)
+- **Decorator:** `@cached_endpoint(endpoint_path)` - Applied to FastAPI route functions
+
+**Cache Configuration by Endpoint:**
+```python
+# Daily Cache (24 hours) - Rarely changing data
+'/available-years': 'daily'
+'/available-weeks': 'daily'
+'/bench-heroes': 'daily'
+'/streak-records': 'daily'
+
+# Weekly Cache (7 days) - Historical analysis
+'/champions': 'weekly'
+'/team-legacy': 'weekly'
+
+# Hourly Cache (1 hour) - Game results
+'/matchups': 'hourly'
+
+# Short Cache (5 minutes) - Current season stats
+'/league/stats': 'short'
+'/standings': 'short'
+
+# No Cache - Always fresh
+'/health': 'never'
+```
+
+**Usage Example:**
+```python
+from cache_setup import cached_endpoint
+
+@app.get("/streak-records")
+@cached_endpoint("/streak-records")
+async def get_streak_records(year: int = None):
+    # Function implementation
+    return data
+```
+
+**Cache Management:**
+- `get_cache_stats()` - View cache statistics and entries
+- `clear_cache()` - Clear all cached data
+- Automatic TTL expiration based on endpoint configuration
 
 #### Available API Endpoints:
-- `GET /league/stats` - Current season (2025) overview
-- `GET /league/stats/{year}` - Historical season data
-- `GET /standings` - Current season standings with team details
-- `GET /standings/{year}` - Historical standings data
-- `GET /bench-heroes?year={year}&week={week}` - Top bench performers analysis
-- `GET /available-years` - List of available historical years
-- `GET /available-weeks/{year}` - Available weeks for specific year
-- `GET /teams` - Current season teams with records
-- `GET /teams/{year}` - Historical teams data
-- `GET /matchups/{week}` - Current season week matchups
-- `GET /matchups/{year}/{week}` - Historical matchups
-- `GET /health` - API health check
+- `GET /league/stats` - Current season overview (5min cache)
+- `GET /league/stats/{year}` - Historical season data (5min cache)
+- `GET /teams` - Current season teams with records (5min cache)
+- `GET /teams/{year}` - Historical teams data (5min cache)
+- `GET /matchups/{week}` - Current season week matchups (1hr cache)
+- `GET /matchups/{year}/{week}` - Historical matchups (1hr cache)
+- `GET /standings` - Current standings (5min cache)
+- `GET /available-years` - Available seasons (24hr cache)
+- `GET /available-weeks` - Available weeks (24hr cache)
+- `GET /bench-heroes/{year}/{week}` - Top bench players (24hr cache)
+- `GET /streak-records` - Winning/losing streak analysis (24hr cache)
+- `GET /champions` - Championship history (7 day cache)
+- `GET /team-legacy` - Team legacy rankings (7 day cache)
+- `GET /health` - API health check (no cache)
 
 ## Development Workflow
 ```bash

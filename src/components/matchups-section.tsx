@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { CalendarIcon, TrophyIcon } from "lucide-react"
+import { queuedFetch } from "@/lib/api-queue"
 
 interface Team {
   name: string
@@ -55,7 +56,7 @@ export function MatchupsSection({ currentWeek = 1, currentYear = 2025 }: Matchup
     async function fetchAvailableYears() {
       try {
         console.log('Fetching available years...')
-        const response = await fetch('/api/available-years')
+        const response = await queuedFetch('/api/available-years')
         console.log('Available years response status:', response.status)
         if (response.ok) {
           const data = await response.json()
@@ -80,7 +81,7 @@ export function MatchupsSection({ currentWeek = 1, currentYear = 2025 }: Matchup
       setWeeksLoading(true)
       try {
         console.log('Fetching available weeks for year:', selectedYear)
-        const response = await fetch(`/api/available-weeks/${selectedYear}`)
+        const response = await queuedFetch(`/api/available-weeks/${selectedYear}`)
         console.log('Available weeks response status:', response.status)
         if (response.ok) {
           const data = await response.json()
