@@ -7,6 +7,8 @@ import { Separator } from "@/components/ui/separator";
 import { StandingsTable } from "@/components/standings-table";
 import { BenchHeroes } from "@/components/bench-heroes";
 import { MatchupsSection } from "@/components/matchups-section";
+import { HallOfChampions } from "@/components/hall-of-champions";
+import { TeamLegacy } from "@/components/team-legacy";
 import { Trophy, Users, TrendingUp, Calendar } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -145,6 +147,26 @@ export default function Home() {
               currentYear={2025}
             />
           </section>
+
+          <Separator />
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+              <em>Hall of Champions</em>
+            </h2>
+            <HallOfChampions currentYear={2025} />
+          </section>
+
+          <Separator />
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+              <em>Team Legacy Rankings</em>
+            </h2>
+            <TeamLegacy />
+          </section>
+
+          <Separator />
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <Card>

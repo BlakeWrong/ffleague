@@ -227,6 +227,236 @@ async def get_current_teams():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch teams: {str(e)}")
 
+@app.get("/champions")
+async def get_current_champions():
+    """Get championship data for current season"""
+    try:
+        league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        teams = league.teams
+
+        # Sort teams by final_standing (1st, 2nd, 3rd, etc.)
+        # Note: final_standing might be 0 if season isn't complete, fall back to regular standing
+        sorted_teams = sorted(teams, key=lambda x: x.final_standing if x.final_standing > 0 else x.standing)
+
+        champions_data = []
+        for i, team in enumerate(sorted_teams[:3]):  # Top 3 only
+            place = i + 1
+            champions_data.append({
+                "place": place,
+                "team_id": team.team_id,
+                "team_name": team.team_name,
+                "owner": f"{team.owners[0].get('firstName', '')} {team.owners[0].get('lastName', '')}".strip() if team.owners and team.owners[0].get('firstName') else (team.owners[0]['displayName'] if team.owners else "Unknown"),
+                "wins": team.wins,
+                "losses": team.losses,
+                "ties": team.ties,
+                "points_for": team.points_for,
+                "points_against": team.points_against,
+                "final_standing": team.final_standing if team.final_standing > 0 else team.standing,
+                "logo_url": team.logo_url if hasattr(team, 'logo_url') else None
+            })
+
+        return {
+            "year": 2025,
+            "champions": champions_data,
+            "season_complete": all(team.final_standing > 0 for team in teams)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch champions: {str(e)}")
+
+@app.get("/champions/{year}")
+async def get_champions_by_year(year: int):
+    """Get championship data for a specific year"""
+    try:
+        if not (2015 <= year <= 2025):
+            raise HTTPException(status_code=400, detail="Year must be between 2015 and 2025")
+
+        league = League(league_id=LEAGUE_ID, year=year, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        teams = league.teams
+
+        # Sort teams by final_standing (1st, 2nd, 3rd, etc.)
+        # Note: final_standing might be 0 if season isn't complete, fall back to regular standing
+        sorted_teams = sorted(teams, key=lambda x: x.final_standing if x.final_standing > 0 else x.standing)
+
+        champions_data = []
+        for i, team in enumerate(sorted_teams[:3]):  # Top 3 only
+            place = i + 1
+            champions_data.append({
+                "place": place,
+                "team_id": team.team_id,
+                "team_name": team.team_name,
+                "owner": f"{team.owners[0].get('firstName', '')} {team.owners[0].get('lastName', '')}".strip() if team.owners and team.owners[0].get('firstName') else (team.owners[0]['displayName'] if team.owners else "Unknown"),
+                "wins": team.wins,
+                "losses": team.losses,
+                "ties": team.ties,
+                "points_for": team.points_for,
+                "points_against": team.points_against,
+                "final_standing": team.final_standing if team.final_standing > 0 else team.standing,
+                "logo_url": team.logo_url if hasattr(team, 'logo_url') else None
+            })
+
+        return {
+            "year": year,
+            "champions": champions_data,
+            "season_complete": all(team.final_standing > 0 for team in teams)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch champions for {year}: {str(e)}")
+
+@app.get("/team-legacy")
+async def get_team_legacy():
+    """Get comprehensive team history and legacy data across all years"""
+    try:
+        # Get available years first
+        league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        available_years = [2025]
+
+        if hasattr(league, 'previousSeasons') and league.previousSeasons:
+            for season in league.previousSeasons:
+                try:
+                    year = int(season)
+                    available_years.append(year)
+                except ValueError:
+                    continue
+
+        available_years.sort(reverse=True)
+
+        # Collect data for each team across all years
+        team_legacy_data = {}
+
+        for year in available_years:
+            try:
+                year_league = League(league_id=LEAGUE_ID, year=year, espn_s2=ESPN_S2, swid=SWID, debug=False)
+                teams = year_league.teams
+
+                for team in teams:
+                    # Use owner name as the consistent identifier across years
+                    owner_name = f"{team.owners[0].get('firstName', '')} {team.owners[0].get('lastName', '')}".strip() if team.owners and team.owners[0].get('firstName') else (team.owners[0]['displayName'] if team.owners else f"Team_{team.team_id}")
+
+                    if owner_name not in team_legacy_data:
+                        team_legacy_data[owner_name] = {
+                            "owner": owner_name,
+                            "team_names": [],  # Track all team names with years for chronological order
+                            "years_active": [],
+                            "placements": [],
+                            "total_wins": 0,
+                            "total_losses": 0,
+                            "total_ties": 0,
+                            "total_points_for": 0,
+                            "total_points_against": 0,
+                            "seasons_played": 0,
+                            "championship_years": [],
+                            "runner_up_years": [],
+                            "third_place_years": []
+                        }
+
+                    # Add data for this year
+                    team_data = team_legacy_data[owner_name]
+                    team_data["team_names"].append({"name": team.team_name, "year": year})
+                    team_data["years_active"].append(year)
+
+                    # Use final_standing if available, otherwise regular standing
+                    placement = team.final_standing if team.final_standing > 0 else team.standing
+                    team_data["placements"].append({"year": year, "placement": placement})
+
+                    team_data["total_wins"] += team.wins
+                    team_data["total_losses"] += team.losses
+                    team_data["total_ties"] += team.ties
+                    team_data["total_points_for"] += team.points_for
+                    team_data["total_points_against"] += team.points_against
+                    team_data["seasons_played"] += 1
+
+                    # Track championships
+                    if placement == 1:
+                        team_data["championship_years"].append(year)
+                    elif placement == 2:
+                        team_data["runner_up_years"].append(year)
+                    elif placement == 3:
+                        team_data["third_place_years"].append(year)
+
+            except Exception as e:
+                print(f"Error processing year {year}: {e}")
+                continue
+
+        # Calculate legacy stats and rankings
+        legacy_rankings = []
+
+        for owner, data in team_legacy_data.items():
+            if data["seasons_played"] == 0:
+                continue
+
+            # Sort team names by year and get unique names
+            data["team_names"].sort(key=lambda x: x["year"], reverse=True)
+            unique_names = []
+            seen_names = set()
+            for name_entry in data["team_names"]:
+                if name_entry["name"] not in seen_names:
+                    unique_names.append(name_entry["name"])
+                    seen_names.add(name_entry["name"])
+
+            # Most recent team name is primary
+            current_team_name = unique_names[0] if unique_names else "Unknown"
+            aka_names = unique_names[1:] if len(unique_names) > 1 else []
+
+            data["years_active"].sort(reverse=True)
+
+            # Calculate average placement EXCLUDING current year (2025)
+            completed_placements = [p for p in data["placements"] if p["year"] < 2025]
+
+            if len(completed_placements) > 0:
+                avg_placement = sum(p["placement"] for p in completed_placements) / len(completed_placements)
+                has_placement_history = True
+            else:
+                avg_placement = None  # No completed seasons
+                has_placement_history = False
+
+            # Calculate all-time win percentage (all years including current)
+            total_games = data["total_wins"] + data["total_losses"] + data["total_ties"]
+            win_percentage = (data["total_wins"] / total_games * 100) if total_games > 0 else 0
+
+            # Calculate points per game average (all years including current)
+            avg_points_per_game = data["total_points_for"] / data["seasons_played"] if data["seasons_played"] > 0 else 0
+
+            # Create gaps in participation (years not active) - exclude current year from gap calculation
+            completed_years = [y for y in available_years if y < 2025]
+            if completed_years:
+                all_completed_years = set(range(min(completed_years), max(completed_years) + 1))
+                active_completed_years = set([y for y in data["years_active"] if y < 2025])
+                gap_years = sorted(list(all_completed_years - active_completed_years), reverse=True)
+            else:
+                gap_years = []
+
+            # Add calculated fields
+            data.update({
+                "average_placement": round(avg_placement, 2) if avg_placement is not None else None,
+                "has_placement_history": has_placement_history,
+                "completed_seasons": len(completed_placements),
+                "win_percentage": round(win_percentage, 1),
+                "avg_points_per_game": round(avg_points_per_game, 1),
+                "championships": len(data["championship_years"]),
+                "runner_ups": len(data["runner_up_years"]),
+                "third_places": len(data["third_place_years"]),
+                "gap_years": gap_years,
+                "current_team_name": current_team_name,
+                "aka_names": aka_names,
+                "years_in_league": len(data["years_active"]),
+                "total_years_available": len(available_years)
+            })
+
+            legacy_rankings.append(data)
+
+        # Sort by average placement (ascending - better placement = lower number)
+        # Teams with no placement history go to the bottom
+        legacy_rankings.sort(key=lambda x: (x["average_placement"] is None, x["average_placement"] or float('inf')))
+
+        return {
+            "total_teams": len(legacy_rankings),
+            "years_analyzed": available_years,
+            "team_legacy": legacy_rankings
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch team legacy data: {str(e)}")
+
 @app.get("/teams/{year}")
 async def get_teams_by_year(year: int):
     """Get all teams for a specific year"""
