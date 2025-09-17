@@ -60,7 +60,7 @@ export function MatchupsSection({ currentWeek = 1, currentYear = 2025 }: Matchup
         if (response.ok) {
           const data = await response.json()
           console.log('Available years data:', data)
-          const allYears = data.available_years || []
+          const allYears = data.supported_years || data.available_years || []
           setAvailableYears(allYears)
         } else {
           const errorText = await response.text()
@@ -157,6 +157,9 @@ export function MatchupsSection({ currentWeek = 1, currentYear = 2025 }: Matchup
           <div>
             <p className="text-sm text-muted-foreground">
               Head-to-head matchups and scores for any week
+            </p>
+            <p className="text-xs text-yellow-700 dark:text-yellow-300">
+              💡 Note: Data only available from 2019 onwards due to ESPN API limitations
             </p>
           </div>
 
