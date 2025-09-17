@@ -94,7 +94,44 @@ export function TeamLegacy() {
     return <Minus className="h-4 w-4 text-gray-400" />
   }
 
+  const compressGapYears = (gapYears: number[]) => {
+    if (gapYears.length === 0) return ''
+
+    // Sort years in ascending order
+    const sortedYears = [...gapYears].sort((a, b) => a - b)
+    const compressed: string[] = []
+    let i = 0
+
+    while (i < sortedYears.length) {
+      const start = sortedYears[i]
+      let end = start
+
+      // Find consecutive years
+      while (i + 1 < sortedYears.length && sortedYears[i + 1] === sortedYears[i] + 1) {
+        i++
+        end = sortedYears[i]
+      }
+
+      // Only compress if 3 or more consecutive years
+      if (end - start >= 2) {
+        compressed.push(`${start}-${end}`)
+      } else if (end === start) {
+        compressed.push(start.toString())
+      } else {
+        // 2 consecutive years, don't compress
+        compressed.push(start.toString())
+        compressed.push(end.toString())
+      }
+
+      i++
+    }
+
+    return compressed.join(', ')
+  }
+
   const PlacementHistory = ({ placements }: { placements: TeamPlacement[] }) => {
+    const [isExpanded, setIsExpanded] = useState(false)
+
     // Prepare data - exclude current year (2025)
     const completedPlacements = placements
       .filter(p => p.year < 2025)
@@ -125,29 +162,70 @@ export function TeamLegacy() {
       return `#${placement}`
     }
 
+    const mobileVisibleCount = 6
+    const hasMobileMore = completedPlacements.length > mobileVisibleCount
+    const mobileDisplayedPlacements = isExpanded ? completedPlacements : completedPlacements.slice(0, mobileVisibleCount)
+
     return (
       <div className="space-y-3">
-        {/* Recent years timeline */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {completedPlacements.slice(0, 8).map((p) => (
-            <div
-              key={p.year}
-              className={`px-3 py-2 rounded-lg border text-sm font-semibold transition-all hover:scale-105 ${getPlacementColor(p.placement)}`}
-              title={`${p.year}: ${getPlacementIcon(p.placement)} place`}
-            >
-              <div className="text-xs opacity-75">{p.year}</div>
-              <div className="text-sm font-bold">{getPlacementIcon(p.placement)}</div>
-            </div>
-          ))}
-          {completedPlacements.length > 8 && (
-            <div className="text-xs text-muted-foreground px-2">
-              +{completedPlacements.length - 8} more
+        {/* Mobile timeline with expansion */}
+        <div className="block sm:hidden space-y-2">
+          <div className="flex items-center gap-1 flex-wrap">
+            {mobileDisplayedPlacements.map((p) => (
+              <div
+                key={p.year}
+                className={`px-2 py-1 rounded-lg border text-xs font-semibold transition-all hover:scale-105 ${getPlacementColor(p.placement)}`}
+                title={`${p.year}: ${getPlacementIcon(p.placement)} place`}
+              >
+                <div className="text-xs opacity-75">{p.year}</div>
+                <div className="text-xs font-bold">{getPlacementIcon(p.placement)}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile expandable button */}
+          {hasMobileMore && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="h-8 px-3 text-xs transition-all hover:scale-105"
+              >
+                {isExpanded ? (
+                  <>
+                    <span>Show Less</span>
+                    <span className="ml-1">↑</span>
+                  </>
+                ) : (
+                  <>
+                    <span>+{completedPlacements.length - mobileVisibleCount} more seasons</span>
+                    <span className="ml-1">↓</span>
+                  </>
+                )}
+              </Button>
             </div>
           )}
         </div>
 
+        {/* Desktop timeline - show all seasons */}
+        <div className="hidden sm:block">
+          <div className="flex items-center gap-2 flex-wrap">
+            {completedPlacements.map((p) => (
+              <div
+                key={p.year}
+                className={`px-3 py-2 rounded-lg border text-sm font-semibold transition-all hover:scale-105 ${getPlacementColor(p.placement)}`}
+                title={`${p.year}: ${getPlacementIcon(p.placement)} place`}
+              >
+                <div className="text-xs opacity-75">{p.year}</div>
+                <div className="text-sm font-bold">{getPlacementIcon(p.placement)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Summary stats */}
-        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 sm:gap-4 text-xs text-muted-foreground flex-wrap">
           <span>Best: {getPlacementIcon(Math.min(...completedPlacements.map(p => p.placement)))}</span>
           <span>Worst: #{Math.max(...completedPlacements.map(p => p.placement))}</span>
           <span>Recent: {getPlacementIcon(completedPlacements[0]?.placement)} ({completedPlacements[0]?.year})</span>
@@ -226,26 +304,38 @@ export function TeamLegacy() {
                     key={team.owner}
                     className="transition-all duration-200 hover:shadow-lg"
                   >
-                    <CardContent className="p-6">
+                    <CardContent className="p-4 sm:p-6">
                       <div className="flex flex-col gap-4">
                         {/* Header Row */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <Badge className={`${getRankBadgeColor(rank)} font-bold text-lg px-3 py-1 border`}>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center gap-3 sm:gap-4">
+                            <Badge className={`${getRankBadgeColor(rank)} font-bold text-base sm:text-lg px-2 py-1 sm:px-3 border`}>
                               {team.has_placement_history ? `#${rank}` : 'NEW'}
                             </Badge>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-semibold text-lg">{team.current_team_name}</h3>
+                            <div className="min-w-0 flex-1">
+                              {/* Desktop: inline AKA */}
+                              <div className="hidden sm:flex sm:items-center sm:gap-2">
+                                <h3 className="font-semibold text-lg truncate">{team.current_team_name}</h3>
                                 <AKANamesButton akaNames={team.aka_names} />
                               </div>
-                              <p className="text-sm text-muted-foreground">{team.owner}</p>
+
+                              {/* Mobile: stacked AKA */}
+                              <div className="block sm:hidden">
+                                <h3 className="font-semibold text-base">{team.current_team_name}</h3>
+                                {team.aka_names.length > 0 && (
+                                  <div className="mt-1">
+                                    <AKANamesButton akaNames={team.aka_names} />
+                                  </div>
+                                )}
+                              </div>
+
+                              <p className="text-sm text-muted-foreground truncate">{team.owner}</p>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center justify-between sm:justify-end gap-4">
                             <div className="text-center">
-                              <p className="text-2xl font-bold text-primary">
+                              <p className="text-xl sm:text-2xl font-bold text-primary">
                                 {team.has_placement_history ? team.average_placement : '–'}
                               </p>
                               <p className="text-xs text-muted-foreground">AVG RANK</p>
@@ -258,43 +348,43 @@ export function TeamLegacy() {
                         </div>
 
                         {/* Stats Row */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4 py-2 border-t border-border">
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-4 py-2 border-t border-border">
                           <div className="text-center">
-                            <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+                            <p className="text-sm sm:text-lg font-semibold text-green-600 dark:text-green-400">
                               {team.completed_seasons}/{legacyData.years_analyzed.filter(y => y < 2025).length}
                             </p>
                             <p className="text-xs text-muted-foreground">SEASONS</p>
                           </div>
                           <div className="text-center">
-                            <p className="text-lg font-semibold">
+                            <p className="text-sm sm:text-lg font-semibold">
                               {team.win_percentage}%
                             </p>
                             <p className="text-xs text-muted-foreground">WIN RATE</p>
                           </div>
                           <div className="text-center">
-                            <p className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                            <p className="text-sm sm:text-lg font-semibold text-blue-600 dark:text-blue-400">
                               {team.avg_points_per_game}
                             </p>
-                            <p className="text-xs text-muted-foreground">PPG</p>
+                            <p className="text-xs text-muted-foreground">PTS/YR</p>
                           </div>
                           <div className="text-center">
-                            <div className="text-lg font-semibold flex items-center justify-center gap-1">
-                              {team.championships > 0 && <><Trophy className="h-4 w-4 text-yellow-500" /><span>{team.championships}</span></>}
-                              {team.runner_ups > 0 && <><Medal className="h-4 w-4 text-gray-400" /><span>{team.runner_ups}</span></>}
-                              {team.third_places > 0 && <><Award className="h-4 w-4 text-amber-600" /><span>{team.third_places}</span></>}
+                            <div className="text-sm sm:text-lg font-semibold flex items-center justify-center gap-1">
+                              {team.championships > 0 && <><Trophy className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" /><span>{team.championships}</span></>}
+                              {team.runner_ups > 0 && <><Medal className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" /><span>{team.runner_ups}</span></>}
+                              {team.third_places > 0 && <><Award className="h-3 w-3 sm:h-4 sm:w-4 text-amber-600" /><span>{team.third_places}</span></>}
                               {team.championships === 0 && team.runner_ups === 0 && team.third_places === 0 && <span className="text-muted-foreground">-</span>}
                             </div>
                             <p className="text-xs text-muted-foreground">PODIUM</p>
                           </div>
                           <div className="text-center">
-                            <p className="text-lg font-semibold">
+                            <p className="text-sm sm:text-lg font-semibold">
                               {team.total_wins}-{team.total_losses}
                               {team.total_ties > 0 && `-${team.total_ties}`}
                             </p>
                             <p className="text-xs text-muted-foreground">RECORD</p>
                           </div>
                           <div className="text-center">
-                            <p className="text-lg font-semibold">
+                            <p className="text-sm sm:text-lg font-semibold">
                               {team.gap_years.length}
                             </p>
                             <p className="text-xs text-muted-foreground">GAPS</p>
@@ -311,9 +401,10 @@ export function TeamLegacy() {
                           </div>
                           <PlacementHistory placements={team.placements} />
                           {team.gap_years.length > 0 && (
-                            <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                              ⚠️ Missed seasons: {team.gap_years.join(', ')}
-                            </p>
+                            <div className="flex items-center gap-1 text-xs text-yellow-700 dark:text-yellow-300">
+                              <span>⚠️</span>
+                              <span>Missed seasons: {compressGapYears(team.gap_years)}</span>
+                            </div>
                           )}
                         </div>
                       </div>

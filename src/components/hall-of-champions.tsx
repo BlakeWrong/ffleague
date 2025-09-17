@@ -198,8 +198,60 @@ export function HallOfChampions({ currentYear = 2025 }: HallOfChampionsProps) {
                   key={champion.team_id}
                   className={`${getPlaceStyle(champion.place)} transition-all duration-200 hover:shadow-lg`}
                 >
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
+                  <CardContent className="p-4 sm:p-6">
+                    {/* Mobile Layout */}
+                    <div className="block sm:hidden">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          {getTrophyIcon(champion.place)}
+                          <div>
+                            <div className={getPlaceTextStyle(champion.place)}>
+                              {getPlaceText(champion.place)}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Final Standing: #{champion.final_standing}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mb-4">
+                        <h3 className="font-semibold text-lg">{champion.team_name}</h3>
+                        <p className="text-sm text-muted-foreground">{champion.owner}</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="text-center p-3 bg-muted/30 rounded-lg">
+                          <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                            {champion.wins}
+                          </p>
+                          <p className="text-xs text-muted-foreground">WINS</p>
+                        </div>
+                        <div className="text-center p-3 bg-muted/30 rounded-lg">
+                          <p className="text-xl font-bold text-red-600 dark:text-red-400">
+                            {champion.losses}
+                          </p>
+                          <p className="text-xs text-muted-foreground">LOSSES</p>
+                        </div>
+                        {champion.ties > 0 && (
+                          <div className="text-center p-3 bg-muted/30 rounded-lg">
+                            <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
+                              {champion.ties}
+                            </p>
+                            <p className="text-xs text-muted-foreground">TIES</p>
+                          </div>
+                        )}
+                        <div className="text-center p-3 bg-muted/30 rounded-lg">
+                          <p className="text-lg font-semibold">
+                            {champion.points_for.toFixed(1)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">POINTS</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Desktop Layout */}
+                    <div className="hidden sm:flex sm:items-center sm:justify-between">
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-3">
                           {getTrophyIcon(champion.place)}
@@ -219,34 +271,32 @@ export function HallOfChampions({ currentYear = 2025 }: HallOfChampionsProps) {
                         </div>
                       </div>
 
-                      <div className="text-right">
-                        <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-6">
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                            {champion.wins}
+                          </p>
+                          <p className="text-xs text-muted-foreground">WINS</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                            {champion.losses}
+                          </p>
+                          <p className="text-xs text-muted-foreground">LOSSES</p>
+                        </div>
+                        {champion.ties > 0 && (
                           <div className="text-center">
-                            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                              {champion.wins}
+                            <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                              {champion.ties}
                             </p>
-                            <p className="text-xs text-muted-foreground">WINS</p>
+                            <p className="text-xs text-muted-foreground">TIES</p>
                           </div>
-                          <div className="text-center">
-                            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                              {champion.losses}
-                            </p>
-                            <p className="text-xs text-muted-foreground">LOSSES</p>
-                          </div>
-                          {champion.ties > 0 && (
-                            <div className="text-center">
-                              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                                {champion.ties}
-                              </p>
-                              <p className="text-xs text-muted-foreground">TIES</p>
-                            </div>
-                          )}
-                          <div className="text-center">
-                            <p className="text-lg font-semibold">
-                              {champion.points_for.toFixed(1)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">POINTS</p>
-                          </div>
+                        )}
+                        <div className="text-center">
+                          <p className="text-lg font-semibold">
+                            {champion.points_for.toFixed(1)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">POINTS</p>
                         </div>
                       </div>
                     </div>
