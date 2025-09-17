@@ -24,14 +24,20 @@ A comprehensive fantasy football analytics platform that connects to ESPN Fantas
 
 ## Current Features
 ### Frontend (Next.js + shadcn/ui)
+- **"Show Me Your TDs"** branding with custom football favicon
 - Mobile-first responsive design with glassmorphism effects
 - Real-time ESPN league data display
 - **API request queue system** for performance optimization
+
 - League statistics dashboard with:
-  - Current week and total teams
+  - Current week and total teams (2025 season data)
   - League leader with record
   - Average scoring across league
   - Recent matchups with team names and scores
+- **League Standings Table** - Mobile-optimized shadcn table showing current rankings
+- **Bench Heroes Feature** - Advanced analytics showing top bench performers by week/year
+- Open Graph metadata for rich link previews in social apps
+- Multiple favicon formats for cross-platform compatibility
 
 #### Frontend API Queue System
 The application implements a sophisticated API request queue to prevent server overload and optimize performance.
@@ -68,7 +74,7 @@ const response = await queuedFetch('/api/streak-records', {
 
 ### Backend (Python FastAPI)
 - **Multiple ESPN API endpoints** for different data needs
-- **Historical data support** (2015-2024 seasons)
+- **Historical data support** (2015-2025 seasons)
 - **Real ESPN integration** using `espn-api` library
 - **Server-side caching system** with configurable TTL for optimal performance
 
@@ -206,15 +212,17 @@ The user wants to build a comprehensive fantasy football analytics platform with
 - Resolved port conflicts between Next.js and Python API in production
 - Moved `concurrently` to production dependencies for Heroku compatibility
 
-## Current Status - Version 0.0.1 Production Ready
-- ✅ Basic ESPN integration working with real league data
-- ✅ Multiple Python API endpoints functional
-- ✅ Frontend displaying real fantasy football data
-- ✅ Development workflow established
-- ✅ **PRODUCTION DEPLOYMENT WORKING** on Heroku
-- ✅ Full-stack Next.js + Python FastAPI deployed and integrated
-- ✅ Port management and buildpack configuration resolved
-- 🚧 Ready for expansion with advanced analytics and additional features
+## Current Status - Version 1.0 Production Ready
+- ✅ **2025 Season Data** - Updated from 2024 to current season
+- ✅ **"Show Me Your TDs" Branding** - Custom title, description, and football favicons
+- ✅ **League Standings Feature** - Complete standings table with mobile optimization
+- ✅ **Bench Heroes Analytics** - Advanced feature for analyzing bench performance
+- ✅ **Multi-format Favicons** - PNG and Apple touch icons for mobile compatibility
+- ✅ **Open Graph Metadata** - Rich link previews in social media and messaging apps
+- ✅ **Multiple ESPN API Endpoints** - Comprehensive backend with historical data support
+- ✅ **Mobile-First Design** - Fully responsive shadcn/ui components
+- ✅ **Production Deployment** - Stable Heroku deployment with dual buildpacks
+- ✅ **Development Workflow** - Established development→master workflow with proper git practices
 
 ## Production URL
 - **Live Application**: https://ffleague-fc3c9309ff7b.herokuapp.com/
@@ -225,11 +233,28 @@ The user wants to build a comprehensive fantasy football analytics platform with
 - **Always work on development branch** for all features and fixes
 - Only merge to master for production releases
 
-## Current Status (2025 Season)
-The application is currently working with 2024 data. User wants to update to 2025 season data and add:
-1. New endpoint for 2025 league standings
-2. Mobile-first shadcn table component showing current standings
-3. Automatically fetch most recent week's standings
+## UI/UX Standards & Design Principles
+### Branding
+- **App Title**: "Show Me Your TDs"
+- **Description**: "Where Sports N Shit becomes a battlefield"
+- **Favicon**: Football emoji (🏈) with multiple format support (SVG, PNG 16x16, PNG 32x32, Apple touch icon)
+- **Season Badge**: "2025 Season" prominently displayed
+
+### Typography & Content
+- **Header**: "Show Me Your TDs" (main branding)
+- **Main Content**: Generic fantasy football messaging (avoid over-theming)
+- **Tone**: Fun but not overly themed - balance personality with professionalism
+
+### Mobile-First Design
+- All components must be mobile-optimized first
+- Use shadcn/ui components for consistency
+- Glassmorphism effects with backdrop blur
+- Responsive grid layouts (sm:grid-cols-2 lg:grid-cols-3/4)
+
+### Social Media Integration
+- Open Graph metadata configured for rich link previews
+- Twitter card support
+- Proper favicon support across all platforms and devices
 
 ## ESPN API Documentation (espn-api Python Library)
 
@@ -399,3 +424,51 @@ Inherits from Player Class with additional variables:
 - Box scores only work with current season data
 - **Current year is 2025** - update all hardcoded years from 2024 to 2025
 - **Key method for standings: `league.standings()`** - returns sorted List[Team] by current standings
+
+## Advanced Features Implemented
+
+### Standings Table
+- **Component**: `/src/components/standings-table.tsx`
+- **API Endpoint**: `/api/standings` (proxies to Python `/standings`)
+- **Features**: Mobile-responsive table with team rankings, records, points, and win streaks
+- **Styling**: shadcn/ui Table component with loading states and proper mobile optimization
+
+### Bench Heroes Analytics
+- **Component**: `/src/components/bench-heroes.tsx`
+- **API Endpoint**: `/api/bench-heroes?year={year}&week={week}`
+- **Features**:
+  - Historical analysis of top bench performers
+  - Year/week selection dropdowns
+  - ESPN player profile links
+  - Detailed player statistics (points, position, pro team)
+  - Error handling and loading states
+- **Python Implementation**: Complex analysis of bench players across all teams for given week
+
+### Component Standards
+- All components use TypeScript with proper interface definitions
+- Loading states with skeleton loaders or loading text
+- Error handling with user-friendly error messages
+- Mobile-first responsive design
+- shadcn/ui component library for consistency
+- Proper ESLint compliance (escaped quotes in JSX: `&apos;`, `&ldquo;`, `&rdquo;`)
+
+## Development Standards
+### Git Workflow
+- **Development Branch**: All feature work and fixes
+- **Master Branch**: Production releases only
+- **Commit Messages**: Descriptive with Claude Code attribution
+- **PR Process**: Development → Master for production releases
+
+### Code Quality
+- TypeScript strict mode
+- ESLint configuration with proper HTML entity escaping
+- Next.js 15 App Router with proper async/await patterns
+- Error boundaries and proper error handling
+- Mobile-first responsive design principles
+
+### API Design
+- RESTful endpoints with proper HTTP status codes
+- Consistent error response format
+- Historical data support (2015-2025)
+- Query parameter validation
+- Proper CORS handling via Next.js API routes as proxy
