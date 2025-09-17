@@ -690,16 +690,23 @@ async def get_luck_analysis():
 
         available_years.sort(reverse=True)
 
+        # Limit to recent years for performance (last 5 years including current)
+        recent_years = [year for year in available_years if year >= 2019][:5]
+        print(f"Processing luck analysis for years: {recent_years}", flush=True)
+
         # Collect luck data
         season_luck_data = []
         single_matchup_luck = []
 
-        for analysis_year in available_years:
+        for year_index, analysis_year in enumerate(recent_years):
+            print(f"Processing year {analysis_year} ({year_index + 1}/{len(recent_years)})", flush=True)
+
             try:
                 year_league = League(league_id=LEAGUE_ID, year=analysis_year, espn_s2=ESPN_S2, swid=SWID, debug=False)
 
                 # For current year (2025), only get completed weeks, for past years get all weeks
                 max_week = 17 if analysis_year < 2025 else (year_league.current_week if hasattr(year_league, 'current_week') and year_league.current_week else 17)
+                print(f"Processing weeks 1-{max_week} for {analysis_year}", flush=True)
 
                 season_team_luck = {}  # team_id -> luck stats for the season
 
@@ -721,6 +728,20 @@ async def get_luck_analysis():
                                 continue
 
                         for matchup in matchups:
+                            # Validate matchup data structure
+                            if not hasattr(matchup, 'home_team') or not hasattr(matchup, 'away_team'):
+                                continue
+
+                            # Check if team objects are valid (sometimes they can be integers)
+                            if not hasattr(matchup.home_team, 'team_id') or not hasattr(matchup.away_team, 'team_id'):
+                                print(f"Skipping invalid matchup in {analysis_year} week {week}: team objects are not properly formed", flush=True)
+                                continue
+
+                            # Check if required attributes exist
+                            if not hasattr(matchup, 'home_projected') or not hasattr(matchup, 'away_projected'):
+                                print(f"Skipping matchup in {analysis_year} week {week}: missing projected scores", flush=True)
+                                continue
+
                             # Calculate luck for home team
                             home_projected_margin = matchup.home_projected - matchup.away_projected
                             home_actual_margin = matchup.home_score - matchup.away_score
