@@ -1,9 +1,9 @@
 interface QueueItem {
   id: string;
   priority: number;
-  apiCall: () => Promise<any>;
-  resolve: (value: any) => void;
-  reject: (reason?: any) => void;
+  apiCall: () => Promise<unknown>;
+  resolve: (value: unknown) => void;
+  reject: (reason?: Error) => void;
   component?: string;
   url?: string;
   addedAt: number;
@@ -42,12 +42,12 @@ class APIQueue {
       id = `${component}-${Date.now()}-${Math.random()}`
     } = options;
 
-    return new Promise((resolve, reject) => {
+    return new Promise<T>((resolve, reject) => {
       const queueItem: QueueItem = {
         id,
         priority,
-        apiCall,
-        resolve,
+        apiCall: apiCall as () => Promise<unknown>,
+        resolve: resolve as (value: unknown) => void,
         reject,
         component,
         url,
@@ -112,7 +112,7 @@ class APIQueue {
           }
         } catch (error) {
           console.error(`❌ API queue error for ${queueItem.component}:`, error);
-          queueItem.reject(error);
+          queueItem.reject(error instanceof Error ? error : new Error(String(error)));
           this.activeRequests.delete(queueItem.id);
         }
       }
