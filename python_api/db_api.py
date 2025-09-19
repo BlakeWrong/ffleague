@@ -276,11 +276,11 @@ class DatabaseAPI:
         try:
             bench_query = """
             SELECT
-                pp.player_name,
+                p.name as player_name,
                 pp.points,
                 t.team_name,
                 t.team_id,
-                t.owner_name,
+                t.owners,
                 p.position,
                 p.pro_team
             FROM player_performances pp
@@ -297,12 +297,26 @@ class DatabaseAPI:
             # Format the response
             formatted_heroes = []
             for hero in bench_heroes:
+                # Parse owners JSON to get owner name
+                try:
+                    owners_data = json.loads(hero['owners']) if hero['owners'] else []
+                    if owners_data and len(owners_data) > 0:
+                        owner_data = owners_data[0]
+                        if 'firstName' in owner_data and 'lastName' in owner_data:
+                            owner_name = f"{owner_data['firstName']} {owner_data['lastName']}".strip()
+                        else:
+                            owner_name = owner_data.get('displayName', 'Unknown')
+                    else:
+                        owner_name = "Unknown"
+                except:
+                    owner_name = "Unknown"
+
                 formatted_heroes.append({
                     "player_name": hero['player_name'],
                     "points": round(hero['points'], 2),
                     "team_name": hero['team_name'],
                     "team_id": hero['team_id'],
-                    "owner": hero['owner_name'],
+                    "owner": owner_name,
                     "position": hero['position'],
                     "pro_team": hero['pro_team']
                 })
@@ -311,7 +325,8 @@ class DatabaseAPI:
                 "year": year,
                 "week": week,
                 "bench_heroes": formatted_heroes,
-                "total_bench_players": len(formatted_heroes)
+                "total_bench_players": len(formatted_heroes),
+                "total": len(formatted_heroes)
             }
 
         except Exception as e:
@@ -482,11 +497,17 @@ class DatabaseAPI:
                     "data_source": "database"
                 }
             else:
-                # No pre-calculated data available
+                # No pre-calculated data available - return empty but properly structured data
                 return {
                     "season_data": [],
                     "top_lucky_matchups": [],
-                    "data_source": "none",
+                    "summary": {
+                        "total_seasons": 0,
+                        "total_matchups": 0,
+                        "most_lucky_team": None,
+                        "most_unlucky_team": None
+                    },
+                    "data_source": "database",
                     "message": "Luck analysis data not yet calculated"
                 }
 
