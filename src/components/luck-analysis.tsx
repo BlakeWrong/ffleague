@@ -46,7 +46,7 @@ interface LuckAnalysisData {
   luckiest_single_matchups: SingleMatchupLuck[]
   unluckiest_single_matchups: SingleMatchupLuck[]
   total_seasons_analyzed: number
-  total_matchups_analyzed: number
+  total_games_analyzed: number
 }
 
 export function LuckAnalysis() {
@@ -262,7 +262,7 @@ export function LuckAnalysis() {
     luckiest_single_matchups: luckData.luckiest_single_matchups || [],
     unluckiest_single_matchups: luckData.unluckiest_single_matchups || [],
     total_seasons_analyzed: luckData.total_seasons_analyzed || 0,
-    total_matchups_analyzed: luckData.total_matchups_analyzed || 0
+    total_games_analyzed: luckData.total_games_analyzed || 0
   }
 
   return (
@@ -281,7 +281,10 @@ export function LuckAnalysis() {
         <div className="space-y-6">
           <div className="text-center py-2 px-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-sm text-blue-700 dark:text-blue-300">
-              🍀 Analyzing {safeData.total_matchups_analyzed} matchups across {safeData.total_seasons_analyzed} seasons
+              🍀 Analyzing {safeData.total_games_analyzed} games across {safeData.total_seasons_analyzed} seasons (2019-2025)
+            </p>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+              Analysis requires projected scores (available 2019+)
             </p>
           </div>
 

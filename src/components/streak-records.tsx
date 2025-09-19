@@ -220,7 +220,7 @@ export function StreakRecords() {
         <div className="space-y-6">
           <div className="text-center py-2 px-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-sm text-blue-700 dark:text-blue-300">
-              🎯 Analyzing {streakData.total_games_analyzed} games across {streakData.years_analyzed.length} seasons ({streakData.years_analyzed[streakData.years_analyzed.length - 1]} - {streakData.years_analyzed[0]})
+              🎯 Analyzing {streakData.total_games_analyzed} games across {streakData.years_analyzed.length} seasons ({streakData.years_analyzed[0]} - {streakData.years_analyzed[streakData.years_analyzed.length - 1]})
             </p>
           </div>
 

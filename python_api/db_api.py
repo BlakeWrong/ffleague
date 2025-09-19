@@ -544,13 +544,30 @@ class DatabaseAPI:
                 luckiest_matchups = [m for m in all_matchups_transformed if m['luck'] > 0][:5]
                 unluckiest_matchups = sorted([m for m in all_matchups_transformed if m['luck'] < 0], key=lambda x: x['luck'])[:5]
 
+                # Count unique games analyzed (divide by 2 since each game has 2 records)
+                unique_games_query = "SELECT COUNT(DISTINCT year || '-' || week || '-' || team_id || '-' || opponent_team_id) / 2 as count FROM luck_analysis_matchups"
+                unique_games_count = self._execute_single(unique_games_query)
+                total_games = int(unique_games_count['count']) if unique_games_count else 0
+
+                # Get years analyzed from both tables (seasons and matchups)
+                years_query = """
+                SELECT DISTINCT year FROM (
+                    SELECT year FROM luck_analysis_seasons
+                    UNION
+                    SELECT year FROM luck_analysis_matchups
+                ) ORDER BY year
+                """
+                years_data = self._execute_query(years_query)
+                years_analyzed = [row['year'] for row in years_data]
+
                 return {
                     "luckiest_seasons": luckiest_seasons,
                     "unluckiest_seasons": unluckiest_seasons,
                     "luckiest_single_matchups": luckiest_matchups,
                     "unluckiest_single_matchups": unluckiest_matchups,
-                    "total_seasons_analyzed": len(seasons_data),
-                    "total_matchups_analyzed": len(top_matchups),
+                    "total_seasons_analyzed": len(years_analyzed),
+                    "total_games_analyzed": total_games,
+                    "years_analyzed": years_analyzed,
                     "data_source": "database"
                 }
             else:
@@ -595,3 +612,422 @@ class DatabaseAPI:
                 "database": "disconnected",
                 "error": str(e)
             }
+
+    def get_streak_records(self, year: int = None) -> Dict[str, Any]:
+        """Get winning and losing streak records from database"""
+        try:
+            # Base query to get all matchups with outcomes
+            if year:
+                years_filter = "WHERE m.year = ?"
+                params = (year,)
+                years_analyzed = [year]
+            else:
+                years_filter = ""
+                params = ()
+                # Get available years for streak analysis
+                years_query = "SELECT DISTINCT year FROM matchups ORDER BY year"
+                years_data = self._execute_query(years_query)
+                years_analyzed = [row['year'] for row in years_data]
+
+            # Respect the current_week for each season (championship week varies by year)
+            if year:
+                # Single year analysis - use that year's current_week
+                current_week_query = "SELECT current_week FROM leagues WHERE year = ?"
+                current_week_data = self._execute_single(current_week_query, (year,))
+                if current_week_data and year == 2025:
+                    # For current year (2025), only count completed weeks
+                    current_week = current_week_data['current_week']
+                    week_filter = f"AND m.week < {current_week}"
+                elif current_week_data:
+                    # For past years, include all weeks up to the season's final week
+                    current_week = current_week_data['current_week']
+                    week_filter = f"AND m.week <= {current_week}"
+                else:
+                    week_filter = ""
+            else:
+                # All-time analysis - respect each year's current_week
+                week_filter = """AND EXISTS (
+                    SELECT 1 FROM leagues l
+                    WHERE l.year = m.year
+                    AND (
+                        (m.year = 2025 AND m.week < l.current_week) OR
+                        (m.year < 2025 AND m.week <= l.current_week)
+                    )
+                )"""
+
+            matchups_query = f"""
+            SELECT
+                m.year,
+                m.week,
+                m.home_team_id,
+                m.away_team_id,
+                m.home_score,
+                m.away_score,
+                ht.team_name as home_team_name,
+                ht.owners as home_owners,
+                at.team_name as away_team_name,
+                at.owners as away_owners
+            FROM matchups m
+            JOIN teams ht ON m.home_team_id = ht.team_id AND m.year = ht.year
+            JOIN teams at ON m.away_team_id = at.team_id AND m.year = at.year
+            {years_filter}
+            {week_filter}
+            ORDER BY m.year, m.week
+            """
+
+            matchups_data = self._execute_query(matchups_query, params)
+
+            # Process matchups into game results per owner
+            owner_games = {}
+
+            for matchup in matchups_data:
+                # Parse owner names
+                try:
+                    home_owners_data = json.loads(matchup['home_owners']) if matchup['home_owners'] else []
+                    home_owner = self._extract_owner_name(home_owners_data)
+                except:
+                    home_owner = matchup['home_team_name']
+
+                try:
+                    away_owners_data = json.loads(matchup['away_owners']) if matchup['away_owners'] else []
+                    away_owner = self._extract_owner_name(away_owners_data)
+                except:
+                    away_owner = matchup['away_team_name']
+
+                # Determine winner/loser
+                home_score = float(matchup['home_score'])
+                away_score = float(matchup['away_score'])
+
+                # Create game records
+                home_game = {
+                    'year': matchup['year'],
+                    'week': matchup['week'],
+                    'owner': home_owner,
+                    'team_name': matchup['home_team_name'],
+                    'opponent': away_owner,
+                    'score': home_score,
+                    'opponent_score': away_score,
+                    'result': 'W' if home_score > away_score else 'L' if home_score < away_score else 'T'
+                }
+
+                away_game = {
+                    'year': matchup['year'],
+                    'week': matchup['week'],
+                    'owner': away_owner,
+                    'team_name': matchup['away_team_name'],
+                    'opponent': home_owner,
+                    'score': away_score,
+                    'opponent_score': home_score,
+                    'result': 'W' if away_score > home_score else 'L' if away_score < home_score else 'T'
+                }
+
+                # Add to owner games
+                if home_owner not in owner_games:
+                    owner_games[home_owner] = []
+                if away_owner not in owner_games:
+                    owner_games[away_owner] = []
+
+                owner_games[home_owner].append(home_game)
+                owner_games[away_owner].append(away_game)
+
+            # Calculate streaks for each owner
+            win_streaks = []
+            loss_streaks = []
+            current_streaks = []
+
+            for owner, games in owner_games.items():
+                # Sort games chronologically
+                games.sort(key=lambda x: (x['year'], x['week']))
+
+                # Calculate all streaks for this owner
+                owner_win_streaks = []
+                owner_loss_streaks = []
+
+                current_streak_type = None
+                current_streak_length = 0
+                current_streak_start_idx = 0
+
+                for i, game in enumerate(games):
+                    if game['result'] in ['W', 'L']:  # Skip ties
+                        if current_streak_type == game['result']:
+                            # Continue current streak
+                            current_streak_length += 1
+                        else:
+                            # End previous streak if it existed
+                            if current_streak_type and current_streak_length > 0:
+                                # Get streak games and team names
+                                streak_games = games[current_streak_start_idx:current_streak_start_idx + current_streak_length]
+                                team_names = list(set([g['team_name'] for g in streak_games]))
+
+                                streak_record = {
+                                    'owner': owner,
+                                    'type': current_streak_type,
+                                    'length': current_streak_length,
+                                    'start_year': streak_games[0]['year'],
+                                    'start_week': streak_games[0]['week'],
+                                    'end_year': streak_games[-1]['year'],
+                                    'end_week': streak_games[-1]['week'],
+                                    'team_names': team_names,
+                                    'games': streak_games,
+                                    'is_current': False  # Not current unless it's the final streak
+                                }
+
+                                if current_streak_type == 'W':
+                                    owner_win_streaks.append(streak_record)
+                                else:
+                                    owner_loss_streaks.append(streak_record)
+
+                            # Start new streak
+                            current_streak_type = game['result']
+                            current_streak_length = 1
+                            current_streak_start_idx = i
+
+                # Handle final streak (this is the current streak)
+                if current_streak_type and current_streak_length > 0:
+                    # Get streak games and team names
+                    streak_games = games[current_streak_start_idx:current_streak_start_idx + current_streak_length]
+                    team_names = list(set([g['team_name'] for g in streak_games]))
+
+                    streak_record = {
+                        'owner': owner,
+                        'type': current_streak_type,
+                        'length': current_streak_length,
+                        'start_year': streak_games[0]['year'],
+                        'start_week': streak_games[0]['week'],
+                        'end_year': streak_games[-1]['year'],
+                        'end_week': streak_games[-1]['week'],
+                        'team_names': team_names,
+                        'games': streak_games,
+                        'is_current': True  # Final streak is always current
+                    }
+
+                    if current_streak_type == 'W':
+                        owner_win_streaks.append(streak_record)
+                    else:
+                        owner_loss_streaks.append(streak_record)
+
+                    # Add to current streaks if 3+ games, only for all-time analysis, and owner is active
+                    if not year and current_streak_length >= 3:
+                        current_streaks.append(streak_record)
+
+                # Add all streaks to main lists
+                win_streaks.extend(owner_win_streaks)
+                loss_streaks.extend(owner_loss_streaks)
+
+            # Sort streaks by length
+            win_streaks.sort(key=lambda x: x['length'], reverse=True)
+            loss_streaks.sort(key=lambda x: x['length'], reverse=True)
+
+            # Filter current streaks to only include active league participants (2025 season)
+            if not year:  # Only for all-time analysis
+                # Get current season participants from database
+                active_owners_query = """
+                SELECT DISTINCT owners
+                FROM teams
+                WHERE year = 2025
+                """
+                active_teams_data = self._execute_query(active_owners_query)
+
+                active_owners = set()
+                for team in active_teams_data:
+                    try:
+                        owners_data = json.loads(team['owners']) if team['owners'] else []
+                        owner_name = self._extract_owner_name(owners_data)
+                        active_owners.add(owner_name)
+                    except:
+                        continue
+
+                # Filter current streaks to only include active owners
+                filtered_current_streaks = [
+                    streak for streak in current_streaks
+                    if streak['owner'] in active_owners
+                ]
+                current_streaks = filtered_current_streaks
+
+            current_streaks.sort(key=lambda x: x['length'], reverse=True)
+
+            return {
+                "analysis_type": "single_season" if year else "all_time",
+                "year": year,
+                "years_analyzed": years_analyzed,
+                "longest_win_streaks": win_streaks[:5],  # Top 5
+                "longest_loss_streaks": loss_streaks[:5],  # Top 5
+                "current_streaks": current_streaks,
+                "total_games_analyzed": len(matchups_data)
+            }
+
+        except Exception as e:
+            return {"error": f"Database error: {str(e)}"}
+
+    def get_team_legacy(self) -> Dict[str, Any]:
+        """Get comprehensive team legacy data across all years"""
+        try:
+            # Get all team data across years
+            teams_query = """
+            SELECT
+                t.year,
+                t.team_id,
+                t.team_name,
+                t.owners,
+                t.wins,
+                t.losses,
+                t.ties,
+                t.points_for,
+                t.points_against,
+                t.standing,
+                t.final_standing
+            FROM teams t
+            ORDER BY t.year, t.team_id
+            """
+            teams_data = self._execute_query(teams_query)
+
+            # Get available years
+            years_query = "SELECT DISTINCT year FROM teams ORDER BY year DESC"
+            years_data = self._execute_query(years_query)
+            available_years = [row['year'] for row in years_data]
+
+            # Process team legacy data by owner
+            team_legacy_data = {}
+
+            for team in teams_data:
+                # Extract owner name
+                try:
+                    owners_data = json.loads(team['owners']) if team['owners'] else []
+                    owner_name = self._extract_owner_name(owners_data)
+                except:
+                    owner_name = team['team_name']
+
+                # Initialize owner data if not exists
+                if owner_name not in team_legacy_data:
+                    team_legacy_data[owner_name] = {
+                        "owner": owner_name,
+                        "team_names": [],
+                        "years_active": [],
+                        "placements": [],
+                        "championship_years": [],
+                        "runner_up_years": [],
+                        "third_place_years": [],
+                        "total_wins": 0,
+                        "total_losses": 0,
+                        "total_ties": 0,
+                        "total_points_for": 0,
+                        "total_points_against": 0,
+                        "seasons_played": 0,
+                        "completed_seasons": 0
+                    }
+
+                # Add data for this year
+                team_data = team_legacy_data[owner_name]
+                team_data["team_names"].append({"name": team['team_name'], "year": team['year']})
+                team_data["years_active"].append(team['year'])
+
+                # Use final_standing if available, otherwise regular standing
+                placement = team['final_standing'] if team['final_standing'] and team['final_standing'] > 0 else team['standing']
+                team_data["placements"].append({"year": team['year'], "placement": placement})
+
+                team_data["total_wins"] += team['wins']
+                team_data["total_losses"] += team['losses']
+                team_data["total_ties"] += team['ties']
+                team_data["total_points_for"] += team['points_for']
+                team_data["total_points_against"] += team['points_against']
+                team_data["seasons_played"] += 1
+
+                # Track championships
+                if placement == 1:
+                    team_data["championship_years"].append(team['year'])
+                elif placement == 2:
+                    team_data["runner_up_years"].append(team['year'])
+                elif placement == 3:
+                    team_data["third_place_years"].append(team['year'])
+
+                # Count completed seasons (not current year)
+                if team['year'] < 2025:
+                    team_data["completed_seasons"] += 1
+
+            # Calculate legacy rankings and additional stats
+            legacy_rankings = []
+            for owner_name, data in team_legacy_data.items():
+                # Calculate additional metrics
+                championships = len(data["championship_years"])
+                runner_ups = len(data["runner_up_years"])
+                third_places = len(data["third_place_years"])
+
+                # Legacy score calculation
+                legacy_score = (championships * 50) + (runner_ups * 30) + (third_places * 15) + data["total_wins"]
+
+                # Win percentage
+                total_games = data["total_wins"] + data["total_losses"] + data["total_ties"]
+                win_percentage = (data["total_wins"] / total_games * 100) if total_games > 0 else 0
+
+                # Points per game
+                points_per_game = (data["total_points_for"] / total_games) if total_games > 0 else 0
+
+                # Calculate current_team_name and aka_names
+                data["team_names"].sort(key=lambda x: x["year"], reverse=True)
+                unique_names = []
+                seen_names = set()
+                for name_entry in data["team_names"]:
+                    if name_entry["name"] not in seen_names:
+                        unique_names.append(name_entry["name"])
+                        seen_names.add(name_entry["name"])
+
+                current_team_name = unique_names[0] if unique_names else "Unknown"
+                aka_names = unique_names[1:] if len(unique_names) > 1 else []
+
+                # Calculate average placement and has_placement_history
+                completed_placements = [p for p in data["placements"] if p["year"] < 2025]
+                if len(completed_placements) > 0:
+                    average_placement = sum(p["placement"] for p in completed_placements) / len(completed_placements)
+                    has_placement_history = True
+                else:
+                    average_placement = None
+                    has_placement_history = False
+
+                # Calculate gap years (years not active) - include current year
+                if available_years:
+                    min_year = min(available_years)
+                    max_year = max(available_years)
+                    all_years = set(range(min_year, max_year + 1))
+                    active_years = set(data["years_active"])
+                    gap_years = sorted(list(all_years - active_years), reverse=True)
+                else:
+                    gap_years = []
+
+                legacy_rankings.append({
+                    **data,
+                    "championships": championships,
+                    "runner_ups": runner_ups,
+                    "third_places": third_places,
+                    "legacy_score": legacy_score,
+                    "win_percentage": round(win_percentage, 1),
+                    "avg_points_per_game": round(points_per_game, 2),
+                    "total_games": total_games,
+                    "current_team_name": current_team_name,
+                    "aka_names": aka_names,
+                    "has_placement_history": has_placement_history,
+                    "average_placement": round(average_placement, 2) if average_placement is not None else None,
+                    "gap_years": gap_years
+                })
+
+            # Sort by placement history first (teams with history come first), then by average placement
+            # Teams with no placement history go to the bottom regardless of average placement
+            legacy_rankings.sort(key=lambda x: (not x["has_placement_history"], x["average_placement"] or float('inf')))
+
+            return {
+                "total_teams": len(legacy_rankings),
+                "years_analyzed": available_years,
+                "team_legacy": legacy_rankings
+            }
+
+        except Exception as e:
+            return {"error": f"Database error: {str(e)}"}
+
+    def _extract_owner_name(self, owners_data):
+        """Helper method to extract owner name from JSON data"""
+        if owners_data and len(owners_data) > 0:
+            owner_data = owners_data[0]
+            if 'firstName' in owner_data and 'lastName' in owner_data:
+                return f"{owner_data['firstName']} {owner_data['lastName']}".strip()
+            else:
+                return owner_data.get('displayName', 'Unknown')
+        return "Unknown"
