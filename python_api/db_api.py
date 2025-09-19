@@ -481,32 +481,42 @@ class DatabaseAPI:
                     week,
                     team_name,
                     opponent_name,
-                    luck_score,
+                    luck_points as luck_score,
                     actual_score,
                     projected_score
                 FROM luck_analysis_matchups
-                WHERE ABS(luck_score) > 10
-                ORDER BY ABS(luck_score) DESC
+                WHERE ABS(luck_points) > 10
+                ORDER BY ABS(luck_points) DESC
                 LIMIT 20
                 """
                 top_matchups = self._execute_query(matchups_query)
 
+                # Process seasons data to separate lucky vs unlucky
+                luckiest_seasons = [s for s in seasons_data if s['total_luck'] > 0][:3]
+                unluckiest_seasons = [s for s in seasons_data if s['total_luck'] < 0][-3:]
+
+                # Process matchups to separate lucky vs unlucky
+                luckiest_matchups = [m for m in top_matchups if m['luck_score'] > 0][:5]
+                unluckiest_matchups = [m for m in top_matchups if m['luck_score'] < 0][-5:]
+
                 return {
-                    "season_data": seasons_data,
-                    "top_lucky_matchups": top_matchups,
+                    "luckiest_seasons": luckiest_seasons,
+                    "unluckiest_seasons": unluckiest_seasons,
+                    "luckiest_single_matchups": luckiest_matchups,
+                    "unluckiest_single_matchups": unluckiest_matchups,
+                    "total_seasons_analyzed": len(seasons_data),
+                    "total_matchups_analyzed": len(top_matchups),
                     "data_source": "database"
                 }
             else:
                 # No pre-calculated data available - return empty but properly structured data
                 return {
-                    "season_data": [],
-                    "top_lucky_matchups": [],
-                    "summary": {
-                        "total_seasons": 0,
-                        "total_matchups": 0,
-                        "most_lucky_team": None,
-                        "most_unlucky_team": None
-                    },
+                    "luckiest_seasons": [],
+                    "unluckiest_seasons": [],
+                    "luckiest_single_matchups": [],
+                    "unluckiest_single_matchups": [],
+                    "total_seasons_analyzed": 0,
+                    "total_matchups_analyzed": 0,
                     "data_source": "database",
                     "message": "Luck analysis data not yet calculated"
                 }

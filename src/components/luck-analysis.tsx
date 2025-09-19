@@ -242,6 +242,16 @@ export function LuckAnalysis() {
     )
   }
 
+  // Defensive checks for data structure
+  const safeData = {
+    luckiest_seasons: luckData.luckiest_seasons || [],
+    unluckiest_seasons: luckData.unluckiest_seasons || [],
+    luckiest_single_matchups: luckData.luckiest_single_matchups || [],
+    unluckiest_single_matchups: luckData.unluckiest_single_matchups || [],
+    total_seasons_analyzed: luckData.total_seasons_analyzed || 0,
+    total_matchups_analyzed: luckData.total_matchups_analyzed || 0
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -258,7 +268,7 @@ export function LuckAnalysis() {
         <div className="space-y-6">
           <div className="text-center py-2 px-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-sm text-blue-700 dark:text-blue-300">
-              🍀 Analyzing {luckData.total_matchups_analyzed} matchups across {luckData.total_seasons_analyzed} seasons
+              🍀 Analyzing {safeData.total_matchups_analyzed} matchups across {safeData.total_seasons_analyzed} seasons
             </p>
           </div>
 
@@ -280,9 +290,9 @@ export function LuckAnalysis() {
                   <Clover className="h-5 w-5 text-green-500" />
                   Luckiest Seasons (Top 3)
                 </h3>
-                {luckData.luckiest_seasons.length > 0 ? (
+                {safeData.luckiest_seasons.length > 0 ? (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {luckData.luckiest_seasons.map((season, index) =>
+                    {safeData.luckiest_seasons.map((season, index) =>
                       renderSeasonCard(season, index, true)
                     )}
                   </div>
@@ -299,9 +309,9 @@ export function LuckAnalysis() {
                   <Zap className="h-5 w-5 text-red-500" />
                   Unluckiest Seasons (Top 3)
                 </h3>
-                {luckData.unluckiest_seasons.length > 0 ? (
+                {safeData.unluckiest_seasons.length > 0 ? (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {luckData.unluckiest_seasons.map((season, index) =>
+                    {safeData.unluckiest_seasons.map((season, index) =>
                       renderSeasonCard(season, index, false)
                     )}
                   </div>
@@ -320,9 +330,9 @@ export function LuckAnalysis() {
                   <Clover className="h-5 w-5 text-green-500" />
                   Luckiest Single Matchups (Top 5)
                 </h3>
-                {luckData.luckiest_single_matchups.length > 0 ? (
+                {safeData.luckiest_single_matchups.length > 0 ? (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {luckData.luckiest_single_matchups.map((matchup, index) =>
+                    {safeData.luckiest_single_matchups.map((matchup, index) =>
                       renderMatchupCard(matchup, index, true)
                     )}
                   </div>
@@ -339,9 +349,9 @@ export function LuckAnalysis() {
                   <Zap className="h-5 w-5 text-red-500" />
                   Unluckiest Single Matchups (Top 5)
                 </h3>
-                {luckData.unluckiest_single_matchups.length > 0 ? (
+                {safeData.unluckiest_single_matchups.length > 0 ? (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {luckData.unluckiest_single_matchups.map((matchup, index) =>
+                    {safeData.unluckiest_single_matchups.map((matchup, index) =>
                       renderMatchupCard(matchup, index, false)
                     )}
                   </div>
