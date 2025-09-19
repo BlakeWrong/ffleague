@@ -11,7 +11,17 @@ from api_helpers import get_league_stats
 from espn_api.football import League
 from cache_setup import cached_endpoint, get_cache_stats, clear_cache
 
+# Import database API
+from db_api import DatabaseAPI
+
 # Caching is now handled by decorators in cache_setup.py
+
+# Initialize database API
+db_api = DatabaseAPI()
+
+def use_database() -> bool:
+    """Check if database exists and should be used instead of ESPN API"""
+    return os.path.exists("fantasy_football.db")
 
 # Load environment variables
 load_dotenv()
@@ -55,7 +65,20 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "league_id": LEAGUE_ID}
+    if use_database():
+        db_health = db_api.health_check()
+        return {
+            "status": "healthy",
+            "league_id": LEAGUE_ID,
+            "data_source": "database",
+            "database_status": db_health
+        }
+    else:
+        return {
+            "status": "healthy",
+            "league_id": LEAGUE_ID,
+            "data_source": "espn_api"
+        }
 
 @app.get("/cache-stats")
 async def cache_stats():
@@ -73,33 +96,36 @@ async def cache_clear():
 async def get_available_years():
     """Get list of available years for the league"""
     try:
-        league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        if use_database():
+            return db_api.get_available_years()
+        else:
+            league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
 
-        # Get current year and previous seasons
-        available_years = [2025]  # Current year
+            # Get current year and previous seasons
+            available_years = [2025]  # Current year
 
-        # Add previous seasons if available
-        if hasattr(league, 'previousSeasons') and league.previousSeasons:
-            for season in league.previousSeasons:
-                try:
-                    year = int(season)
-                    available_years.append(year)
-                except ValueError:
-                    continue
+            # Add previous seasons if available
+            if hasattr(league, 'previousSeasons') and league.previousSeasons:
+                for season in league.previousSeasons:
+                    try:
+                        year = int(season)
+                        available_years.append(year)
+                    except ValueError:
+                        continue
 
-        # Sort years in descending order (newest first)
-        available_years.sort(reverse=True)
+            # Sort years in descending order (newest first)
+            available_years.sort(reverse=True)
 
-        # Filter to only include years 2019 and later due to ESPN API limitations
-        supported_years = [year for year in available_years if year >= 2019]
+            # Filter to only include years 2019 and later due to ESPN API limitations
+            supported_years = [year for year in available_years if year >= 2019]
 
-        return {
-            "available_years": available_years,  # All years for other endpoints
-            "supported_years": supported_years,  # Only 2019+ due to ESPN API limitations
-            "total_years": len(available_years),
-            "current_year": 2025,
-            "current_week": league.current_week if hasattr(league, 'current_week') else 18
-        }
+            return {
+                "available_years": available_years,  # All years for other endpoints
+                "supported_years": supported_years,  # Only 2019+ due to ESPN API limitations
+                "total_years": len(available_years),
+                "current_year": 2025,
+                "current_week": league.current_week if hasattr(league, 'current_week') else 18
+            }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch available years: {str(e)}")
 
@@ -150,8 +176,11 @@ async def get_available_weeks(year: int):
 async def get_current_league_stats():
     """Get current season league statistics"""
     try:
-        data = get_league_stats()
-        return data
+        if use_database():
+            return db_api.get_league_stats(2025)
+        else:
+            data = get_league_stats()
+            return data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch league stats: {str(e)}")
 
@@ -159,30 +188,33 @@ async def get_current_league_stats():
 async def get_league_stats_by_year(year: int):
     """Get league statistics for a specific year"""
     try:
-        if not (2015 <= year <= 2024):
-            raise HTTPException(status_code=400, detail="Year must be between 2015 and 2024")
+        if not (2015 <= year <= 2025):
+            raise HTTPException(status_code=400, detail="Year must be between 2015 and 2025")
 
-        league = League(league_id=LEAGUE_ID, year=year, espn_s2=ESPN_S2, swid=SWID, debug=False)
-        teams = league.teams
+        if use_database():
+            return db_api.get_league_stats(year)
+        else:
+            league = League(league_id=LEAGUE_ID, year=year, espn_s2=ESPN_S2, swid=SWID, debug=False)
+            teams = league.teams
 
-        # Calculate league leader for that year
-        sorted_teams = sorted(teams, key=lambda t: (t.wins, t.points_for), reverse=True)
-        league_leader = sorted_teams[0] if sorted_teams else None
+            # Calculate league leader for that year
+            sorted_teams = sorted(teams, key=lambda t: (t.wins, t.points_for), reverse=True)
+            league_leader = sorted_teams[0] if sorted_teams else None
 
-        # Calculate average score
-        total_points = sum(team.points_for for team in teams)
-        average_score = round(total_points / len(teams), 2) if teams else 0.0
+            # Calculate average score
+            total_points = sum(team.points_for for team in teams)
+            average_score = round(total_points / len(teams), 2) if teams else 0.0
 
-        return {
-            "year": year,
-            "total_teams": len(teams),
-            "league_leader": {
-                "team_name": league_leader.team_name if league_leader else "Unknown",
-                "record": f"{league_leader.wins}-{league_leader.losses}" if league_leader else "0-0",
-                "points_for": league_leader.points_for if league_leader else 0
-            },
-            "average_score": str(average_score)
-        }
+            return {
+                "year": year,
+                "total_teams": len(teams),
+                "league_leader": {
+                    "team_name": league_leader.team_name if league_leader else "Unknown",
+                    "record": f"{league_leader.wins}-{league_leader.losses}" if league_leader else "0-0",
+                    "points_for": league_leader.points_for if league_leader else 0
+                },
+                "average_score": str(average_score)
+            }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch {year} league stats: {str(e)}")
 
@@ -190,31 +222,34 @@ async def get_league_stats_by_year(year: int):
 async def get_current_standings():
     """Get current season standings sorted by league position"""
     try:
-        league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
-        standings = league.standings()  # Returns teams sorted by current standings
+        if use_database():
+            return db_api.get_standings(2025)
+        else:
+            league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
+            standings = league.standings()  # Returns teams sorted by current standings
 
-        standings_data = []
-        for team in standings:
-            standings_data.append({
-                "rank": team.standing,
-                "team_id": team.team_id,
-                "team_name": team.team_name,
-                "owner": f"{team.owners[0].get('firstName', '')} {team.owners[0].get('lastName', '')}".strip() if team.owners and team.owners[0].get('firstName') else (team.owners[0]['displayName'] if team.owners else "Unknown"),
-                "wins": team.wins,
-                "losses": team.losses,
-                "ties": team.ties,
-                "points_for": round(team.points_for, 2),
-                "points_against": round(team.points_against, 2),
-                "streak_type": team.streak_type,
-                "streak_length": team.streak_length
-            })
+            standings_data = []
+            for team in standings:
+                standings_data.append({
+                    "rank": team.standing,
+                    "team_id": team.team_id,
+                    "team_name": team.team_name,
+                    "owner": f"{team.owners[0].get('firstName', '')} {team.owners[0].get('lastName', '')}".strip() if team.owners and team.owners[0].get('firstName') else (team.owners[0]['displayName'] if team.owners else "Unknown"),
+                    "wins": team.wins,
+                    "losses": team.losses,
+                    "ties": team.ties,
+                    "points_for": round(team.points_for, 2),
+                    "points_against": round(team.points_against, 2),
+                    "streak_type": team.streak_type,
+                    "streak_length": team.streak_length
+                })
 
-        return {
-            "year": 2025,
-            "current_week": league.current_week,
-            "standings": standings_data,
-            "total_teams": len(standings_data)
-        }
+            return {
+                "year": 2025,
+                "current_week": league.current_week,
+                "standings": standings_data,
+                "total_teams": len(standings_data)
+            }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch standings: {str(e)}")
 
@@ -222,23 +257,26 @@ async def get_current_standings():
 async def get_current_teams():
     """Get all teams for current season"""
     try:
-        league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
-        teams = league.teams
+        if use_database():
+            return db_api.get_teams(2025)
+        else:
+            league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
+            teams = league.teams
 
-        team_data = []
-        for team in teams:
-            team_data.append({
-                "team_id": team.team_id,
-                "team_name": team.team_name,
-                "owner": f"{team.owners[0].get('firstName', '')} {team.owners[0].get('lastName', '')}".strip() if team.owners and team.owners[0].get('firstName') else (team.owners[0]['displayName'] if team.owners else "Unknown"),
-                "wins": team.wins,
-                "losses": team.losses,
-                "points_for": team.points_for,
-                "points_against": team.points_against,
-                "standing": team.standing
-            })
+            team_data = []
+            for team in teams:
+                team_data.append({
+                    "team_id": team.team_id,
+                    "team_name": team.team_name,
+                    "owner": f"{team.owners[0].get('firstName', '')} {team.owners[0].get('lastName', '')}".strip() if team.owners and team.owners[0].get('firstName') else (team.owners[0]['displayName'] if team.owners else "Unknown"),
+                    "wins": team.wins,
+                    "losses": team.losses,
+                    "points_for": team.points_for,
+                    "points_against": team.points_against,
+                    "standing": team.standing
+                })
 
-        return {"teams": team_data, "total": len(team_data)}
+            return {"teams": team_data, "total": len(team_data)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch teams: {str(e)}")
 
