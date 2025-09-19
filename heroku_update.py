@@ -25,8 +25,8 @@ def main():
         updater = DatabaseUpdater()
 
         # Determine update type based on day of week
-        import datetime
-        today = datetime.datetime.now().weekday()  # Monday = 0
+        import datetime as dt
+        today = dt.datetime.now().weekday()  # Monday = 0
 
         if today == 0:  # Monday - weekly update
             print("📅 Running weekly update (Monday)")
@@ -35,11 +35,11 @@ def main():
             print("📅 Running daily update")
             updater.daily_update()
 
-        print(f"✅ {datetime.datetime.now()}: Update completed successfully")
+        print(f"✅ {dt.datetime.now()}: Update completed successfully")
         return 0
 
     except Exception as e:
-        print(f"❌ {datetime.datetime.now()}: Update failed: {e}")
+        print(f"❌ {dt.datetime.now()}: Update failed: {e}")
         return 1
 
 if __name__ == "__main__":
