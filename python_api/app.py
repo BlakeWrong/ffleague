@@ -287,6 +287,9 @@ async def get_current_teams():
 async def get_current_champions():
     """Get championship data for current season"""
     try:
+        if use_database():
+            return db_api.get_champions(2025)
+
         league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
         teams = league.teams
 
@@ -325,6 +328,9 @@ async def get_champions_by_year(year: int):
     try:
         if not (2015 <= year <= 2025):
             raise HTTPException(status_code=400, detail="Year must be between 2015 and 2025")
+
+        if use_database():
+            return db_api.get_champions(year)
 
         league = League(league_id=LEAGUE_ID, year=year, espn_s2=ESPN_S2, swid=SWID, debug=False)
         teams = league.teams
@@ -717,6 +723,11 @@ async def get_streak_records(year: int = None):
 async def get_luck_analysis():
     """Get luck analysis showing teams that most outperformed/underperformed projections"""
     try:
+        # Try database first
+        if use_database():
+            return db_api.get_luck_analysis()
+
+        # Fallback to ESPN API (original logic)
         # Get available years
         league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
         available_years = [2025]
@@ -957,6 +968,9 @@ async def get_current_matchups(week: int):
         if not (1 <= week <= 18):
             raise HTTPException(status_code=400, detail="Week must be between 1 and 18")
 
+        if use_database():
+            return db_api.get_matchups(2025, week)
+
         league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
         box_scores = league.box_scores(week)
 
@@ -982,10 +996,13 @@ async def get_current_matchups(week: int):
 async def get_matchups_by_year_week(year: int, week: int):
     """Get matchups for a specific week and year"""
     try:
-        if not (2015 <= year <= 2024):
-            raise HTTPException(status_code=400, detail="Year must be between 2015 and 2024")
+        if not (2015 <= year <= 2025):
+            raise HTTPException(status_code=400, detail="Year must be between 2015 and 2025")
         if not (1 <= week <= 18):
             raise HTTPException(status_code=400, detail="Week must be between 1 and 18")
+
+        if use_database():
+            return db_api.get_matchups(year, week)
 
         league = League(league_id=LEAGUE_ID, year=year, espn_s2=ESPN_S2, swid=SWID, debug=False)
         box_scores = league.box_scores(week)
@@ -1016,6 +1033,9 @@ async def get_bench_heroes(year: int, week: int):
             raise HTTPException(status_code=400, detail="Bench heroes data is only available from 2019 onwards due to ESPN API limitations")
         if not (1 <= week <= 18):
             raise HTTPException(status_code=400, detail="Week must be between 1 and 18")
+
+        if use_database():
+            return db_api.get_bench_heroes(year, week)
 
         print(f"Fetching bench heroes for year={year}, week={week}", flush=True)
 

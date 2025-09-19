@@ -417,6 +417,67 @@ class DatabaseAPI:
         except Exception as e:
             return {"error": f"Database error: {str(e)}"}
 
+    def get_luck_analysis(self) -> Dict[str, Any]:
+        """Get luck analysis data from database"""
+        try:
+            # Check if pre-calculated luck analysis exists
+            luck_query = "SELECT COUNT(*) as count FROM luck_analysis_seasons"
+            luck_count = self._execute_single(luck_query)
+
+            if luck_count and luck_count['count'] > 0:
+                # Return pre-calculated luck analysis
+                seasons_query = """
+                SELECT
+                    year,
+                    team_name,
+                    owner_name,
+                    total_luck,
+                    average_luck,
+                    games_played,
+                    biggest_lucky_week,
+                    biggest_lucky_opponent,
+                    biggest_lucky_points,
+                    biggest_unlucky_week,
+                    biggest_unlucky_opponent,
+                    biggest_unlucky_points
+                FROM luck_analysis_seasons
+                ORDER BY year DESC, total_luck DESC
+                """
+                seasons_data = self._execute_query(seasons_query)
+
+                matchups_query = """
+                SELECT
+                    year,
+                    week,
+                    team_name,
+                    opponent_name,
+                    luck_score,
+                    actual_score,
+                    projected_score
+                FROM luck_analysis_matchups
+                WHERE ABS(luck_score) > 10
+                ORDER BY ABS(luck_score) DESC
+                LIMIT 20
+                """
+                top_matchups = self._execute_query(matchups_query)
+
+                return {
+                    "season_data": seasons_data,
+                    "top_lucky_matchups": top_matchups,
+                    "data_source": "database"
+                }
+            else:
+                # No pre-calculated data available
+                return {
+                    "season_data": [],
+                    "top_lucky_matchups": [],
+                    "data_source": "none",
+                    "message": "Luck analysis data not yet calculated"
+                }
+
+        except Exception as e:
+            return {"error": f"Database error: {str(e)}"}
+
     def health_check(self) -> Dict[str, Any]:
         """Health check - verify database connection and basic functionality"""
         try:
