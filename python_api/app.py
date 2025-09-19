@@ -723,7 +723,7 @@ async def get_streak_records(year: int = None):
 async def get_luck_analysis():
     """Get luck analysis showing teams that most outperformed/underperformed projections"""
     try:
-        # Try database first
+        # Use database
         if use_database():
             return db_api.get_luck_analysis()
 
