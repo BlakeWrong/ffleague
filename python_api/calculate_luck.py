@@ -10,7 +10,15 @@ from typing import Dict, List, Any
 
 def get_connection():
     """Get database connection"""
-    return sqlite3.connect("../fantasy_football.db")
+    import os
+    # Check for database in parent directory first, then current directory
+    parent_db = os.path.join(os.path.dirname(__file__), "..", "fantasy_football.db")
+    current_db = "fantasy_football.db"
+
+    if os.path.exists(parent_db):
+        return sqlite3.connect(parent_db)
+    else:
+        return sqlite3.connect(current_db)
 
 def calculate_luck_for_matchup(actual_score: float, projected_score: float,
                               opponent_actual: float, opponent_projected: float) -> float:
