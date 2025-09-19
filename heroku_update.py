@@ -6,14 +6,14 @@ For use with Heroku Scheduler add-on
 
 import sys
 import os
-from datetime import datetime
+import datetime as dt
 
 # Add the python_api directory to the path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'python_api'))
 
 def main():
     """Main function for Heroku scheduler"""
-    print(f"🕐 {datetime.now()}: Heroku scheduled update starting")
+    print(f"🕐 {dt.datetime.now()}: Heroku scheduled update starting")
 
     # Validate environment variables
     if not all([os.getenv('LEAGUE_ID'), os.getenv('ESPN_S2'), os.getenv('SWID')]):

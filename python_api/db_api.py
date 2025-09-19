@@ -10,8 +10,18 @@ from datetime import datetime
 import os
 
 class DatabaseAPI:
-    def __init__(self, db_path: str = "fantasy_football.db"):
-        self.db_path = db_path
+    def __init__(self, db_path: str = None):
+        if db_path is None:
+            # Look for database in parent directory first, then current directory
+            parent_db = os.path.join(os.path.dirname(__file__), "..", "fantasy_football.db")
+            current_db = "fantasy_football.db"
+
+            if os.path.exists(parent_db):
+                self.db_path = parent_db
+            else:
+                self.db_path = current_db
+        else:
+            self.db_path = db_path
 
     def _get_connection(self):
         """Get database connection"""
@@ -101,7 +111,7 @@ class DatabaseAPI:
                 t.standing,
                 t.team_id,
                 t.team_name,
-                t.owner_name,
+                t.owners,
                 t.wins,
                 t.losses,
                 t.ties,
@@ -114,7 +124,38 @@ class DatabaseAPI:
             ORDER BY t.standing ASC
             """
 
-            standings = self._execute_query(standings_query, (year,))
+            standings_raw = self._execute_query(standings_query, (year,))
+
+            # Process standings to extract owner names from JSON
+            standings = []
+            for team in standings_raw:
+                # Parse owners JSON to get owner name
+                try:
+                    owners_data = json.loads(team['owners']) if team['owners'] else []
+                    if owners_data and len(owners_data) > 0:
+                        owner_data = owners_data[0]
+                        if 'firstName' in owner_data and 'lastName' in owner_data:
+                            owner_name = f"{owner_data['firstName']} {owner_data['lastName']}".strip()
+                        else:
+                            owner_name = owner_data.get('displayName', 'Unknown')
+                    else:
+                        owner_name = "Unknown"
+                except:
+                    owner_name = "Unknown"
+
+                standings.append({
+                    "rank": team['standing'],
+                    "team_id": team['team_id'],
+                    "team_name": team['team_name'],
+                    "owner": owner_name,
+                    "wins": team['wins'],
+                    "losses": team['losses'],
+                    "ties": team['ties'],
+                    "points_for": round(team['points_for'], 2),
+                    "points_against": round(team['points_against'], 2),
+                    "streak_type": team['streak_type'],
+                    "streak_length": team['streak_length']
+                })
 
             # Get current week from league
             league = self._execute_single("SELECT current_week FROM leagues WHERE year = ?", (year,))
@@ -137,7 +178,7 @@ class DatabaseAPI:
             SELECT
                 team_id,
                 team_name,
-                owner_name,
+                owners,
                 wins,
                 losses,
                 ties,
@@ -149,7 +190,36 @@ class DatabaseAPI:
             ORDER BY standing ASC
             """
 
-            teams = self._execute_query(teams_query, (year,))
+            teams_raw = self._execute_query(teams_query, (year,))
+
+            # Process teams to extract owner names from JSON
+            teams = []
+            for team in teams_raw:
+                # Parse owners JSON to get owner name
+                try:
+                    owners_data = json.loads(team['owners']) if team['owners'] else []
+                    if owners_data and len(owners_data) > 0:
+                        owner_data = owners_data[0]
+                        if 'firstName' in owner_data and 'lastName' in owner_data:
+                            owner_name = f"{owner_data['firstName']} {owner_data['lastName']}".strip()
+                        else:
+                            owner_name = owner_data.get('displayName', 'Unknown')
+                    else:
+                        owner_name = "Unknown"
+                except:
+                    owner_name = "Unknown"
+
+                teams.append({
+                    "team_id": team['team_id'],
+                    "team_name": team['team_name'],
+                    "owner": owner_name,
+                    "wins": team['wins'],
+                    "losses": team['losses'],
+                    "ties": team['ties'],
+                    "points_for": team['points_for'],
+                    "points_against": team['points_against'],
+                    "standing": team['standing']
+                })
 
             return {
                 "year": year,

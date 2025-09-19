@@ -21,7 +21,10 @@ db_api = DatabaseAPI()
 
 def use_database() -> bool:
     """Check if database exists and should be used instead of ESPN API"""
-    return os.path.exists("fantasy_football.db")
+    # Check both current directory and parent directory
+    current_db = "fantasy_football.db"
+    parent_db = os.path.join(os.path.dirname(__file__), "..", "fantasy_football.db")
+    return os.path.exists(current_db) or os.path.exists(parent_db)
 
 # Load environment variables
 load_dotenv()
