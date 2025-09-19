@@ -139,21 +139,33 @@ export function LuckAnalysis() {
           <div className="space-y-2 text-xs">
             <div className="p-2 bg-green-50 rounded border border-green-200">
               <p className="text-green-700 font-medium">Luckiest Game</p>
-              <p className="text-green-600">
-                Week {season.biggest_lucky_game.week} vs {season.biggest_lucky_game.opponent}
-              </p>
-              <p className="text-green-800 font-semibold">
-                {formatLuck(season.biggest_lucky_game.luck)} pts
-              </p>
+              {season.biggest_lucky_game && season.biggest_lucky_game.week ? (
+                <>
+                  <p className="text-green-600">
+                    Week {season.biggest_lucky_game.week} vs {season.biggest_lucky_game.opponent}
+                  </p>
+                  <p className="text-green-800 font-semibold">
+                    {formatLuck(season.biggest_lucky_game.luck)} pts
+                  </p>
+                </>
+              ) : (
+                <p className="text-green-600">No data available</p>
+              )}
             </div>
             <div className="p-2 bg-red-50 rounded border border-red-200">
               <p className="text-red-700 font-medium">Unluckiest Game</p>
-              <p className="text-red-600">
-                Week {season.biggest_unlucky_game.week} vs {season.biggest_unlucky_game.opponent}
-              </p>
-              <p className="text-red-800 font-semibold">
-                {formatLuck(season.biggest_unlucky_game.luck)} pts
-              </p>
+              {season.biggest_unlucky_game && season.biggest_unlucky_game.week ? (
+                <>
+                  <p className="text-red-600">
+                    Week {season.biggest_unlucky_game.week} vs {season.biggest_unlucky_game.opponent}
+                  </p>
+                  <p className="text-red-800 font-semibold">
+                    {formatLuck(season.biggest_unlucky_game.luck)} pts
+                  </p>
+                </>
+              ) : (
+                <p className="text-red-600">No data available</p>
+              )}
             </div>
           </div>
         </div>
