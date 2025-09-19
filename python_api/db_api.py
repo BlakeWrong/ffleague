@@ -480,10 +480,15 @@ class DatabaseAPI:
                     year,
                     week,
                     team_name,
+                    owner_name,
                     opponent_name,
                     luck_points as luck_score,
                     actual_score,
-                    projected_score
+                    projected_score,
+                    opponent_actual,
+                    opponent_projected,
+                    actual_margin,
+                    projected_margin
                 FROM luck_analysis_matchups
                 WHERE ABS(luck_points) > 10
                 ORDER BY ABS(luck_points) DESC
@@ -491,13 +496,53 @@ class DatabaseAPI:
                 """
                 top_matchups = self._execute_query(matchups_query)
 
+                # Transform seasons data to match React component expectations
+                def transform_season_data(season):
+                    return {
+                        "year": season['year'],
+                        "team_name": season['team_name'],
+                        "owner": season['owner_name'],
+                        "total_luck": season['total_luck'],
+                        "average_luck": season['average_luck'],
+                        "games_played": season['games_played'],
+                        "biggest_lucky_game": {
+                            "week": season['biggest_lucky_week'],
+                            "opponent": season['biggest_lucky_opponent'],
+                            "luck": season['biggest_lucky_points']
+                        } if season['biggest_lucky_week'] else None,
+                        "biggest_unlucky_game": {
+                            "week": season['biggest_unlucky_week'],
+                            "opponent": season['biggest_unlucky_opponent'],
+                            "luck": season['biggest_unlucky_points']
+                        } if season['biggest_unlucky_week'] else None
+                    }
+
+                # Transform matchup data to match React component expectations
+                def transform_matchup_data(matchup):
+                    return {
+                        "year": matchup['year'],
+                        "week": matchup['week'],
+                        "team_name": matchup['team_name'],
+                        "owner": matchup['owner_name'] if matchup['owner_name'] else 'Unknown',
+                        "opponent": matchup['opponent_name'],
+                        "luck": matchup['luck_score'],
+                        "actual_score": matchup['actual_score'],
+                        "projected_score": matchup['projected_score'],
+                        "opponent_actual": matchup['opponent_actual'],
+                        "opponent_projected": matchup['opponent_projected'],
+                        "actual_margin": matchup['actual_margin'],
+                        "projected_margin": matchup['projected_margin']
+                    }
+
                 # Process seasons data to separate lucky vs unlucky
-                luckiest_seasons = [s for s in seasons_data if s['total_luck'] > 0][:3]
-                unluckiest_seasons = [s for s in seasons_data if s['total_luck'] < 0][-3:]
+                all_seasons_transformed = [transform_season_data(s) for s in seasons_data]
+                luckiest_seasons = [s for s in all_seasons_transformed if s['total_luck'] > 0][:3]
+                unluckiest_seasons = sorted([s for s in all_seasons_transformed if s['total_luck'] < 0], key=lambda x: x['total_luck'])[:3]
 
                 # Process matchups to separate lucky vs unlucky
-                luckiest_matchups = [m for m in top_matchups if m['luck_score'] > 0][:5]
-                unluckiest_matchups = [m for m in top_matchups if m['luck_score'] < 0][-5:]
+                all_matchups_transformed = [transform_matchup_data(m) for m in top_matchups]
+                luckiest_matchups = [m for m in all_matchups_transformed if m['luck'] > 0][:5]
+                unluckiest_matchups = sorted([m for m in all_matchups_transformed if m['luck'] < 0], key=lambda x: x['luck'])[:5]
 
                 return {
                     "luckiest_seasons": luckiest_seasons,
