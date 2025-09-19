@@ -372,7 +372,7 @@ class DatabaseAPI:
             SELECT
                 t.team_id,
                 t.team_name,
-                t.owner_name,
+                t.owners,
                 t.wins,
                 t.losses,
                 t.ties,
@@ -392,11 +392,26 @@ class DatabaseAPI:
             champions = []
             for i, team in enumerate(champions_data):
                 place = i + 1
+
+                # Parse owners JSON to get owner name
+                try:
+                    owners_data = json.loads(team['owners']) if team['owners'] else []
+                    if owners_data and len(owners_data) > 0:
+                        owner_data = owners_data[0]
+                        if 'firstName' in owner_data and 'lastName' in owner_data:
+                            owner_name = f"{owner_data['firstName']} {owner_data['lastName']}".strip()
+                        else:
+                            owner_name = owner_data.get('displayName', 'Unknown')
+                    else:
+                        owner_name = "Unknown"
+                except:
+                    owner_name = "Unknown"
+
                 champions.append({
                     "place": place,
                     "team_id": team['team_id'],
                     "team_name": team['team_name'],
-                    "owner": team['owner_name'],
+                    "owner": owner_name,
                     "wins": team['wins'],
                     "losses": team['losses'],
                     "ties": team['ties'],
