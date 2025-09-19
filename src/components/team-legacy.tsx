@@ -352,7 +352,7 @@ export function TeamLegacy() {
                         <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-4 py-2 border-t border-border">
                           <div className="text-center">
                             <p className="text-sm sm:text-lg font-semibold text-green-600 dark:text-green-400">
-                              {team.completed_seasons}/{legacyData.years_analyzed.filter(y => y < 2025).length}
+                              {team.seasons_played}/{legacyData.years_analyzed.length}
                             </p>
                             <p className="text-xs text-muted-foreground">SEASONS</p>
                           </div>

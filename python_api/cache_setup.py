@@ -45,6 +45,7 @@ ENDPOINT_CACHE_CONFIG = {
     '/available-weeks': 'daily',
     '/bench-heroes': 'daily',
     '/streak-records': 'daily',
+    '/luck-analysis': 'daily',
 
     # Weekly cache
     '/champions': 'weekly',

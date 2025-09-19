@@ -10,6 +10,7 @@ import { MatchupsSection } from "@/components/matchups-section";
 import { HallOfChampions } from "@/components/hall-of-champions";
 import { TeamLegacy } from "@/components/team-legacy";
 import { StreakRecords } from "@/components/streak-records";
+import { LuckAnalysis } from "@/components/luck-analysis";
 import { Trophy, Users, TrendingUp, Calendar } from "lucide-react";
 import { useEffect, useState } from "react";
 import { queuedFetch, PRIORITY } from "@/lib/api-queue";
@@ -181,6 +182,15 @@ export default function Home() {
               <em>Streak Records</em>
             </h2>
             <StreakRecords />
+          </section>
+
+          <Separator />
+
+          <section>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+              <em>Luck Analysis</em>
+            </h2>
+            <LuckAnalysis />
           </section>
 
           <Separator />
