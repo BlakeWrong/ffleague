@@ -96,6 +96,7 @@ export function LuckAnalysis() {
   }
 
   const formatLuck = (luck: number) => {
+    if (luck === undefined || luck === null || isNaN(luck)) return 'N/A'
     const sign = luck >= 0 ? '+' : ''
     return `${sign}${luck.toFixed(1)}`
   }
@@ -206,19 +207,19 @@ export function LuckAnalysis() {
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div>
               <p className="text-muted-foreground">Actual Score</p>
-              <p className="font-semibold">{matchup.actual_score.toFixed(1)}</p>
+              <p className="font-semibold">{matchup.actual_score ? matchup.actual_score.toFixed(1) : 'N/A'}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Projected Score</p>
-              <p className="font-semibold">{matchup.projected_score.toFixed(1)}</p>
+              <p className="font-semibold">{matchup.projected_score ? matchup.projected_score.toFixed(1) : 'N/A'}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Actual Margin</p>
-              <p className="font-semibold">{formatLuck(matchup.actual_margin)}</p>
+              <p className="font-semibold">{matchup.actual_margin !== undefined ? formatLuck(matchup.actual_margin) : 'N/A'}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Projected Margin</p>
-              <p className="font-semibold">{formatLuck(matchup.projected_margin)}</p>
+              <p className="font-semibold">{matchup.projected_margin !== undefined ? formatLuck(matchup.projected_margin) : 'N/A'}</p>
             </div>
           </div>
         </div>
