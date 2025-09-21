@@ -25,7 +25,6 @@ def main():
         updater = DatabaseUpdater()
 
         # Determine update type based on day of week
-        import datetime as dt
         today = dt.datetime.now().weekday()  # Monday = 0
 
         if today == 0:  # Monday - weekly update
