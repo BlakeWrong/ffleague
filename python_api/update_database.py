@@ -112,7 +112,12 @@ class DatabaseUpdater:
                     if not (hasattr(box_score, 'home_team') and hasattr(box_score, 'away_team')):
                         continue
 
-                    # Update box score record
+                    # Update box score record - use UPDATE or INSERT based on existence
+                    existing_box_score = self.db.execute_query(
+                        "SELECT id FROM box_scores WHERE year = ? AND week = ? AND home_team_id = ? AND away_team_id = ?",
+                        (self.current_year, current_week, box_score.home_team.team_id, box_score.away_team.team_id)
+                    )
+
                     box_score_data = {
                         'year': self.current_year,
                         'week': current_week,
@@ -125,7 +130,23 @@ class DatabaseUpdater:
                         'is_playoff': getattr(box_score, 'is_playoff', False),
                         'matchup_type': getattr(box_score, 'matchup_type', 'NONE')
                     }
-                    self.db.execute_insert('box_scores', box_score_data)
+
+                    if existing_box_score and len(existing_box_score) > 0:
+                        # Update existing record
+                        box_score_id = existing_box_score[0][0]
+                        self.db.execute_query(
+                            """UPDATE box_scores SET
+                               home_score = ?, home_projected = ?, away_score = ?, away_projected = ?,
+                               is_playoff = ?, matchup_type = ?
+                               WHERE id = ?""",
+                            (box_score_data['home_score'], box_score_data['home_projected'],
+                             box_score_data['away_score'], box_score_data['away_projected'],
+                             box_score_data['is_playoff'], box_score_data['matchup_type'], box_score_id),
+                            fetch_results=False
+                        )
+                    else:
+                        # Insert new record
+                        self.db.execute_insert('box_scores', box_score_data)
 
                     # Update player performances
                     for lineup_type, lineup in [('home', getattr(box_score, 'home_lineup', [])), ('away', getattr(box_score, 'away_lineup', []))]:
