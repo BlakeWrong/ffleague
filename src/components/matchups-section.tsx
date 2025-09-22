@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { CalendarIcon, TrophyIcon } from "lucide-react"
-import { queuedFetch } from "@/lib/api-queue"
+import { queuedFetch, PRIORITY } from "@/lib/api-queue"
 
 interface Team {
   name: string
@@ -112,7 +112,12 @@ export function MatchupsSection({ currentWeek = 1, currentYear = 2025 }: Matchup
         url = `/api/matchups?year=${year}&week=${week}`
       }
 
-      const response = await fetch(url)
+      const response = await queuedFetch(url, {
+        cache: 'no-store',
+      }, {
+        priority: PRIORITY.HIGH,
+        component: 'MatchupsSection'
+      })
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.message || `Request failed with status ${response.status}`)
