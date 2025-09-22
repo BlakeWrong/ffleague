@@ -9,9 +9,19 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 class FFDatabase:
-    def __init__(self, db_path: str = "fantasy_football.db"):
+    def __init__(self, db_path: str = None):
         """Initialize database connection"""
-        self.db_path = db_path
+        if db_path is None:
+            # Use same logic as DatabaseAPI to ensure consistency
+            parent_db = os.path.join(os.path.dirname(__file__), "..", "fantasy_football.db")
+            current_db = "fantasy_football.db"
+
+            if os.path.exists(parent_db):
+                self.db_path = parent_db
+            else:
+                self.db_path = current_db
+        else:
+            self.db_path = db_path
         self.connection = None
         self.connect()
 
