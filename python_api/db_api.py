@@ -235,15 +235,15 @@ class DatabaseAPI:
         try:
             matchups_query = """
             SELECT
-                m.week,
-                m.home_score,
-                m.away_score,
+                bs.week,
+                bs.home_score,
+                bs.away_score,
                 ht.team_name as home_team_name,
                 at.team_name as away_team_name
-            FROM matchups m
-            JOIN teams ht ON m.home_team_id = ht.team_id AND m.year = ht.year
-            JOIN teams at ON m.away_team_id = at.team_id AND m.year = at.year
-            WHERE m.year = ? AND m.week = ?
+            FROM box_scores bs
+            JOIN teams ht ON bs.home_team_id = ht.team_id AND bs.year = ht.year
+            JOIN teams at ON bs.away_team_id = at.team_id AND bs.year = at.year
+            WHERE bs.year = ? AND bs.week = ?
             """
 
             matchups_data = self._execute_query(matchups_query, (year, week))
