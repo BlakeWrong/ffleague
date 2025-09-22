@@ -141,8 +141,7 @@ class DatabaseUpdater:
                                WHERE id = ?""",
                             (box_score_data['home_score'], box_score_data['home_projected'],
                              box_score_data['away_score'], box_score_data['away_projected'],
-                             box_score_data['is_playoff'], box_score_data['matchup_type'], box_score_id),
-                            fetch_results=False
+                             box_score_data['is_playoff'], box_score_data['matchup_type'], box_score_id)
                         )
                     else:
                         # Insert new record
