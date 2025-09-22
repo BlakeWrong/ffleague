@@ -49,6 +49,7 @@ class DatabaseUpdater:
 
             self.db.log_import_complete(log_id, updates_made)
             print(f"✅ Daily update completed - {updates_made} records updated")
+            return updates_made
 
         except Exception as e:
             self.db.log_import_error(log_id, str(e))
