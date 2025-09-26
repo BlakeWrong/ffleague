@@ -19,6 +19,7 @@ export async function GET() {
       headers: {
         'Content-Type': 'application/json',
       },
+      cache: 'no-store',
     });
 
     if (!response.ok) {
@@ -28,7 +29,13 @@ export async function GET() {
     const data = await response.json();
     console.log('Successfully fetched standings data from Python API');
 
-    return NextResponse.json(data);
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
+    });
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json(

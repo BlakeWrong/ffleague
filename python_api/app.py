@@ -9,12 +9,10 @@ from dotenv import load_dotenv
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from api_helpers import get_league_stats
 from espn_api.football import League
-from cache_setup import cached_endpoint, get_cache_stats, clear_cache
 
 # Import database API
 from db_api import DatabaseAPI
 
-# Caching is now handled by decorators in cache_setup.py
 
 # Initialize database API
 db_api = DatabaseAPI()
@@ -83,19 +81,8 @@ async def health_check():
             "data_source": "espn_api"
         }
 
-@app.get("/cache-stats")
-async def cache_stats():
-    """Get cache statistics and status"""
-    return get_cache_stats()
-
-@app.post("/cache-clear")
-async def cache_clear():
-    """Clear all cache entries"""
-    clear_cache()
-    return {"message": "Cache cleared successfully"}
 
 @app.get("/available-years")
-# @cached_endpoint("/available-years")
 async def get_available_years():
     """Get list of available years for the league"""
     try:
@@ -133,7 +120,6 @@ async def get_available_years():
         raise HTTPException(status_code=500, detail=f"Failed to fetch available years: {str(e)}")
 
 @app.get("/available-weeks/{year}")
-# @cached_endpoint("/available-weeks")
 async def get_available_weeks(year: int):
     """Get list of available weeks for a specific year"""
     try:
@@ -334,7 +320,6 @@ async def get_champions_by_year(year: int):
         raise HTTPException(status_code=500, detail=f"Failed to fetch champions for {year}: {str(e)}")
 
 @app.get("/team-legacy")
-# @cached_endpoint("/team-legacy")
 async def get_team_legacy():
     """Get comprehensive team history and legacy data across all years"""
     try:
@@ -343,7 +328,6 @@ async def get_team_legacy():
         raise HTTPException(status_code=500, detail=f"Failed to fetch team legacy data: {str(e)}")
 
 @app.get("/streak-records")
-# @cached_endpoint("/streak-records")
 async def get_streak_records(year: int = None):
     """Get winning and losing streak records from database"""
     try:
@@ -358,7 +342,6 @@ async def get_streak_records(year: int = None):
         raise HTTPException(status_code=500, detail=f"Failed to fetch streak records: {str(e)}")
 
 @app.get("/luck-analysis")
-# @cached_endpoint("/luck-analysis")
 async def get_luck_analysis():
     """Get luck analysis showing teams that most outperformed/underperformed projections"""
     try:
