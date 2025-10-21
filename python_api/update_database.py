@@ -13,8 +13,6 @@ from import_espn_data import ESPNDataImporter
 
 # ESPN API Configuration
 LEAGUE_ID = int(os.getenv('LEAGUE_ID', '0'))
-ESPN_S2 = os.getenv('ESPN_S2', '')
-SWID = os.getenv('SWID', '')
 
 class DatabaseUpdater:
     def __init__(self):
@@ -60,7 +58,7 @@ class DatabaseUpdater:
         print("  Updating current season data")
 
         try:
-            league = League(league_id=LEAGUE_ID, year=self.current_year, espn_s2=ESPN_S2, swid=SWID)
+            league = League(league_id=LEAGUE_ID, year=self.current_year)
 
             # Update league info
             league_data = {
@@ -81,30 +79,43 @@ class DatabaseUpdater:
             return 0
 
     def update_current_week_performances(self):
-        """Update player performances for the current week"""
-        print("  Updating current week player performances")
+        """Update player performances for current and recent weeks"""
+        print("  Updating current and recent week player performances")
 
         try:
-            league = League(league_id=LEAGUE_ID, year=self.current_year, espn_s2=ESPN_S2, swid=SWID)
+            league = League(league_id=LEAGUE_ID, year=self.current_year)
             current_week = getattr(league, 'current_week', 1)
 
-            # Check if we already have data for this week
-            existing_data = self.db.execute_query(
-                "SELECT COUNT(*) FROM player_performances WHERE year = ? AND week = ?",
-                (self.current_year, current_week)
-            )
+            # Update current week and all previous weeks to catch any missing data
+            weeks_to_update = []
+            # Update all weeks from 1 to current_week to ensure no data is missing
+            for week in range(1, current_week + 1):
+                weeks_to_update.append(week)
 
-            if existing_data and existing_data[0][0] > 0:
-                print(f"    Week {current_week} data already exists, updating...")
+            total_updates = 0
+            for week in weeks_to_update:
+                print(f"    Updating week {week} data...")
+                week_updates = self.update_week_data(league, week)
+                total_updates += week_updates
 
-            # Get box scores for current week
+            return total_updates
+
+        except Exception as e:
+            print(f"    Error updating weeks: {e}")
+            return 0
+
+    def update_week_data(self, league, week):
+        """Update data for a specific week"""
+        try:
+            # Get box scores for the week
             try:
-                box_scores = league.box_scores(current_week)
+                box_scores = league.box_scores(week)
                 if not box_scores:
-                    print(f"    No box scores available for week {current_week}")
+                    print(f"      No box scores available for week {week}")
                     return 0
 
                 player_performances_data = []
+                matchups_data = []
                 players_seen = set()
 
                 for box_score in box_scores:
@@ -114,7 +125,7 @@ class DatabaseUpdater:
                     # Update box score record
                     box_score_data = {
                         'year': self.current_year,
-                        'week': current_week,
+                        'week': week,
                         'home_team_id': box_score.home_team.team_id,
                         'away_team_id': box_score.away_team.team_id,
                         'home_score': getattr(box_score, 'home_score', 0),
@@ -125,6 +136,19 @@ class DatabaseUpdater:
                         'matchup_type': getattr(box_score, 'matchup_type', 'NONE')
                     }
                     self.db.execute_insert('box_scores', box_score_data)
+
+                    # Also create basic matchup record
+                    matchup_data = {
+                        'year': self.current_year,
+                        'week': week,
+                        'home_team_id': box_score.home_team.team_id,
+                        'away_team_id': box_score.away_team.team_id,
+                        'home_score': getattr(box_score, 'home_score', 0),
+                        'away_score': getattr(box_score, 'away_score', 0),
+                        'is_playoff': getattr(box_score, 'is_playoff', False),
+                        'matchup_type': getattr(box_score, 'matchup_type', 'NONE')
+                    }
+                    matchups_data.append(matchup_data)
 
                     # Update player performances
                     for lineup_type, lineup in [('home', getattr(box_score, 'home_lineup', [])), ('away', getattr(box_score, 'away_lineup', []))]:
@@ -150,8 +174,9 @@ class DatabaseUpdater:
                                 performance_data = {
                                     'player_id': player.playerId,
                                     'year': self.current_year,
-                                    'week': current_week,
+                                    'week': week,
                                     'team_id': team_id,
+                                    'lineup_slot': getattr(player, 'lineupSlot', None),
                                     'slot_position': getattr(player, 'slot_position', None),
                                     'points': getattr(player, 'points', 0),
                                     'projected_points': getattr(player, 'projected_points', 0),
@@ -161,17 +186,21 @@ class DatabaseUpdater:
                                 }
                                 player_performances_data.append(performance_data)
 
+                # Insert matchups and player performances
+                if matchups_data:
+                    self.db.execute_many_inserts('matchups', matchups_data)
+
                 if player_performances_data:
                     self.db.execute_many_inserts('player_performances', player_performances_data)
 
-                return len(player_performances_data)
+                return len(player_performances_data) + len(matchups_data)
 
             except Exception as e:
-                print(f"    Box scores not available for week {current_week}: {e}")
+                print(f"      Box scores not available for week {week}: {e}")
                 return 0
 
         except Exception as e:
-            print(f"    Error updating current week: {e}")
+            print(f"      Error updating week {week}: {e}")
             return 0
 
     def update_team_standings(self):
@@ -179,7 +208,7 @@ class DatabaseUpdater:
         print("  Updating team standings and records")
 
         try:
-            league = League(league_id=LEAGUE_ID, year=self.current_year, espn_s2=ESPN_S2, swid=SWID)
+            league = League(league_id=LEAGUE_ID, year=self.current_year)
 
             teams_updated = 0
             for team in league.teams:
@@ -212,7 +241,7 @@ class DatabaseUpdater:
         print("  Updating recent activities")
 
         try:
-            league = League(league_id=LEAGUE_ID, year=self.current_year, espn_s2=ESPN_S2, swid=SWID)
+            league = League(league_id=LEAGUE_ID, year=self.current_year)
 
             # Get recent activities (last 50)
             activities = league.recent_activity(size=50)
@@ -292,7 +321,7 @@ class DatabaseUpdater:
         print("  Updating draft data")
 
         try:
-            league = League(league_id=LEAGUE_ID, year=self.current_year, espn_s2=ESPN_S2, swid=SWID)
+            league = League(league_id=LEAGUE_ID, year=self.current_year)
 
             if not hasattr(league, 'draft') or not league.draft:
                 return 0

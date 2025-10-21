@@ -129,19 +129,7 @@ class DatabaseAPI:
             # Process standings to extract owner names from JSON
             standings = []
             for team in standings_raw:
-                # Parse owners JSON to get owner name
-                try:
-                    owners_data = json.loads(team['owners']) if team['owners'] else []
-                    if owners_data and len(owners_data) > 0:
-                        owner_data = owners_data[0]
-                        if 'firstName' in owner_data and 'lastName' in owner_data:
-                            owner_name = f"{owner_data['firstName']} {owner_data['lastName']}".strip()
-                        else:
-                            owner_name = owner_data.get('displayName', 'Unknown')
-                    else:
-                        owner_name = "Unknown"
-                except:
-                    owner_name = "Unknown"
+                owner_name = self._get_owner_name(team)
 
                 standings.append({
                     "rank": team['standing'],
@@ -195,19 +183,7 @@ class DatabaseAPI:
             # Process teams to extract owner names from JSON
             teams = []
             for team in teams_raw:
-                # Parse owners JSON to get owner name
-                try:
-                    owners_data = json.loads(team['owners']) if team['owners'] else []
-                    if owners_data and len(owners_data) > 0:
-                        owner_data = owners_data[0]
-                        if 'firstName' in owner_data and 'lastName' in owner_data:
-                            owner_name = f"{owner_data['firstName']} {owner_data['lastName']}".strip()
-                        else:
-                            owner_name = owner_data.get('displayName', 'Unknown')
-                    else:
-                        owner_name = "Unknown"
-                except:
-                    owner_name = "Unknown"
+                owner_name = self._get_owner_name(team)
 
                 teams.append({
                     "team_id": team['team_id'],
@@ -287,7 +263,7 @@ class DatabaseAPI:
             JOIN players p ON pp.player_id = p.player_id
             JOIN teams t ON pp.team_id = t.team_id AND pp.year = t.year
             WHERE pp.year = ? AND pp.week = ?
-            AND pp.lineup_slot LIKE '%BE%'
+            AND pp.slot_position LIKE '%BE%'
             ORDER BY pp.points DESC
             LIMIT 5
             """
@@ -297,19 +273,7 @@ class DatabaseAPI:
             # Format the response
             formatted_heroes = []
             for hero in bench_heroes:
-                # Parse owners JSON to get owner name
-                try:
-                    owners_data = json.loads(hero['owners']) if hero['owners'] else []
-                    if owners_data and len(owners_data) > 0:
-                        owner_data = owners_data[0]
-                        if 'firstName' in owner_data and 'lastName' in owner_data:
-                            owner_name = f"{owner_data['firstName']} {owner_data['lastName']}".strip()
-                        else:
-                            owner_name = owner_data.get('displayName', 'Unknown')
-                    else:
-                        owner_name = "Unknown"
-                except:
-                    owner_name = "Unknown"
+                owner_name = self._get_owner_name(hero)
 
                 formatted_heroes.append({
                     "player_name": hero['player_name'],
@@ -380,6 +344,75 @@ class DatabaseAPI:
         except Exception as e:
             return {"error": f"Database error: {str(e)}"}
 
+    def _get_espn_owner_id_mapping(self) -> Dict[str, str]:
+        """Create mapping of ESPN owner IDs to owner names - THE AUTHORITATIVE SOURCE"""
+        return {
+            # Current known ESPN owner IDs mapped to names
+            "{B5FBB7B7-C134-4B6B-BBB7-B7C1343B6BCF}": "D'Anthony",  # team_1
+            "{247150F3-5E23-403B-B150-F35E23603B86}": "Robert",      # team_2
+            "{B67B55F7-CBF5-4789-BB55-F7CBF5A78967}": "Luke",        # team_3
+            "{604BB883-79E2-4222-8BB8-8379E2922282}": "Dylan",       # team_4
+            "{E2A887FA-CFF4-4F06-A887-FACFF40F0667}": "Derek",       # team_6
+            "{7B4DE853-00A2-41CA-8494-216DEAD703FA}": "Zach",        # team_8 historical owner
+            "{AC97CE73-BCAB-4F60-AF01-A4E51D98145A}": "Cody",        # team_9
+            "{BC146B65-4056-4B5A-946B-6540566B5ABF}": "Alec",        # team_10
+            "{E3298BFC-6D98-4852-AD4A-E1E138A72791}": "Andre",       # team_11
+            "{8AA29716-021A-4CB9-8306-8ABC5E14D5BD}": "Sam",         # team_12
+            "{B461B1C8-244E-4927-BFD1-FC980E492516}": "Blake",       # Historical team_9, now team_13?
+            "{2EC18A2F-6C3B-41FF-9B3D-1305343ACF66}": "Brett",       # team_8 in 2018
+            "{EB9FA5E5-2DF6-48AC-9FA5-E52DF688AC5F}": "Shane",       # team_6 in 2018-2019
+            "{49B96E8E-113F-4403-8AD7-D7E785D16975}": "Julian",      # team_12 in 2020-2021
+            # Note: Charlie (team_14) ESPN ID not yet captured
+            # Note: Nick (current team_8 in 2025) ESPN ID not yet captured
+        }
+
+    def _get_team_id_owner_mapping(self) -> Dict[int, str]:
+        """Create mapping of team_id to owner names - THE SINGLE SOURCE OF TRUTH"""
+        return {
+            1: "D'Anthony",     # The Two-Two Train / Soldier Fields / etc.
+            2: "Robert",        # Doug Dimmadome / Milds n' Yak / etc.
+            3: "Luke",          # American Eagle Jeans / Sock Stiffener / etc.
+            4: "Dylan",         # Andy Reid's Mustache / Patty ICE / etc.
+            6: "Derek",         # Kansas City Arrestables / Got the Rugg Pulled / etc.
+            8: "Nick",          # John's Scary Team / Here 4 the Beer / etc.
+            9: "Cody",          # Ten inch Penix / You got a Purdy mouth / KC Bacardi / etc.
+            10: "Alec",         # Tit$burg feelers / Team oberzan / etc.
+            11: "Andre",        # Damardiac Arrest / Hawk Tua / Mojo Dojo Casa House / etc.
+            12: "Sam",          # Clark County Body Kamara / Winston's Crab Shack / etc.
+            13: "Blake",        # Faded off that Josh (new in 2025)
+            14: "Charlie",      # Chucktown Chuggers (new in 2025)
+        }
+
+    def _get_owner_name(self, team_data) -> str:
+        """Extract owner name using ESPN owner ID as primary, team_id as fallback"""
+        # First, try to extract ESPN owner ID from the owners JSON
+        owners_json = team_data.get('owners')
+        if owners_json:
+            try:
+                import json
+                owners = json.loads(owners_json) if isinstance(owners_json, str) else owners_json
+
+                # Get the first owner's ESPN ID
+                if owners and isinstance(owners, list) and len(owners) > 0:
+                    owner = owners[0]
+                    espn_id = owner.get('id')
+
+                    if espn_id:
+                        espn_mapping = self._get_espn_owner_id_mapping()
+                        if espn_id in espn_mapping:
+                            return espn_mapping[espn_id]
+            except (json.JSONDecodeError, TypeError, AttributeError):
+                pass
+
+        # Fallback to team_id mapping for current season data
+        team_id_mapping = self._get_team_id_owner_mapping()
+        team_id = team_data.get('team_id')
+
+        if team_id in team_id_mapping:
+            return team_id_mapping[team_id]
+
+        return "Unknown"
+
     def get_champions(self, year: int = 2025) -> Dict[str, Any]:
         """Get championship results for a specific year"""
         try:
@@ -398,7 +431,7 @@ class DatabaseAPI:
             FROM teams t
             WHERE t.year = ?
             ORDER BY
-                CASE WHEN t.final_standing > 0 THEN t.final_standing ELSE t.standing END ASC
+                CASE WHEN t.final_standing IS NOT NULL AND t.final_standing > 0 THEN t.final_standing ELSE t.standing END ASC
             LIMIT 3
             """
 
@@ -407,20 +440,7 @@ class DatabaseAPI:
             champions = []
             for i, team in enumerate(champions_data):
                 place = i + 1
-
-                # Parse owners JSON to get owner name
-                try:
-                    owners_data = json.loads(team['owners']) if team['owners'] else []
-                    if owners_data and len(owners_data) > 0:
-                        owner_data = owners_data[0]
-                        if 'firstName' in owner_data and 'lastName' in owner_data:
-                            owner_name = f"{owner_data['firstName']} {owner_data['lastName']}".strip()
-                        else:
-                            owner_name = owner_data.get('displayName', 'Unknown')
-                    else:
-                        owner_name = "Unknown"
-                except:
-                    owner_name = "Unknown"
+                owner_name = self._get_owner_name(team)
 
                 champions.append({
                     "place": place,
@@ -432,11 +452,11 @@ class DatabaseAPI:
                     "ties": team['ties'],
                     "points_for": team['points_for'],
                     "points_against": team['points_against'],
-                    "final_standing": team['final_standing'] if team['final_standing'] > 0 else team['standing']
+                    "final_standing": team['final_standing'] if team['final_standing'] is not None and team['final_standing'] > 0 else team['standing']
                 })
 
             # Check if season is complete
-            season_complete = all(team['final_standing'] > 0 for team in champions_data)
+            season_complete = all(team['final_standing'] is not None and team['final_standing'] > 0 for team in champions_data)
 
             return {
                 "year": year,
@@ -681,18 +701,26 @@ class DatabaseAPI:
             owner_games = {}
 
             for matchup in matchups_data:
-                # Parse owner names
-                try:
-                    home_owners_data = json.loads(matchup['home_owners']) if matchup['home_owners'] else []
-                    home_owner = self._extract_owner_name(home_owners_data)
-                except:
-                    home_owner = matchup['home_team_name']
+                # Parse owner names using hybrid ESPN ID / team_id resolution
+                # Get team data for home and away teams to use with owner resolution
+                home_team_data = {'team_id': matchup['home_team_id'], 'owners': None}
+                away_team_data = {'team_id': matchup['away_team_id'], 'owners': None}
 
-                try:
-                    away_owners_data = json.loads(matchup['away_owners']) if matchup['away_owners'] else []
-                    away_owner = self._extract_owner_name(away_owners_data)
-                except:
-                    away_owner = matchup['away_team_name']
+                # Try to get owners data for these teams from the same year
+                owners_query = """
+                SELECT team_id, owners FROM teams
+                WHERE year = ? AND (team_id = ? OR team_id = ?)
+                """
+                owners_data = self._execute_query(owners_query, (matchup['year'], matchup['home_team_id'], matchup['away_team_id']))
+
+                for team_data in owners_data:
+                    if team_data['team_id'] == matchup['home_team_id']:
+                        home_team_data['owners'] = team_data['owners']
+                    elif team_data['team_id'] == matchup['away_team_id']:
+                        away_team_data['owners'] = team_data['owners']
+
+                home_owner = self._get_owner_name(home_team_data)
+                away_owner = self._get_owner_name(away_team_data)
 
                 # Determine winner/loser
                 home_score = float(matchup['home_score'])
@@ -830,12 +858,8 @@ class DatabaseAPI:
 
                 active_owners = set()
                 for team in active_teams_data:
-                    try:
-                        owners_data = json.loads(team['owners']) if team['owners'] else []
-                        owner_name = self._extract_owner_name(owners_data)
-                        active_owners.add(owner_name)
-                    except:
-                        continue
+                    owner_name = self._get_owner_name(team)
+                    active_owners.add(owner_name)
 
                 # Filter current streaks to only include active owners
                 filtered_current_streaks = [
@@ -891,11 +915,7 @@ class DatabaseAPI:
 
             for team in teams_data:
                 # Extract owner name
-                try:
-                    owners_data = json.loads(team['owners']) if team['owners'] else []
-                    owner_name = self._extract_owner_name(owners_data)
-                except:
-                    owner_name = team['team_name']
+                owner_name = self._get_owner_name(team)
 
                 # Initialize owner data if not exists
                 if owner_name not in team_legacy_data:

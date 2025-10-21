@@ -46,8 +46,6 @@ app.add_middleware(
 
 # Configuration
 LEAGUE_ID = int(os.getenv("LEAGUE_ID", 0))
-ESPN_S2 = os.getenv("ESPN_S2")
-SWID = os.getenv("SWID")
 
 @app.get("/")
 async def root():
@@ -102,7 +100,7 @@ async def get_available_years():
         if use_database():
             return db_api.get_available_years()
         else:
-            league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
+            league = League(league_id=LEAGUE_ID, year=2025, debug=False)
 
             # Get current year and previous seasons
             available_years = [2025]  # Current year
@@ -166,7 +164,7 @@ async def get_league_stats_by_year(year: int):
         if use_database():
             return db_api.get_league_stats(year)
         else:
-            league = League(league_id=LEAGUE_ID, year=year, espn_s2=ESPN_S2, swid=SWID, debug=False)
+            league = League(league_id=LEAGUE_ID, year=year, debug=False)
             teams = league.teams
 
             # Calculate league leader for that year
@@ -197,7 +195,7 @@ async def get_current_standings():
         if use_database():
             return db_api.get_standings(2025)
         else:
-            league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
+            league = League(league_id=LEAGUE_ID, year=2025, debug=False)
             standings = league.standings()  # Returns teams sorted by current standings
 
             standings_data = []
@@ -232,7 +230,7 @@ async def get_current_teams():
         if use_database():
             return db_api.get_teams(2025)
         else:
-            league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
+            league = League(league_id=LEAGUE_ID, year=2025, debug=False)
             teams = league.teams
 
             team_data = []
@@ -259,7 +257,7 @@ async def get_current_champions():
         if use_database():
             return db_api.get_champions(2025)
 
-        league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        league = League(league_id=LEAGUE_ID, year=2025, debug=False)
         teams = league.teams
 
         # Sort teams by final_standing (1st, 2nd, 3rd, etc.)
@@ -301,7 +299,7 @@ async def get_champions_by_year(year: int):
         if use_database():
             return db_api.get_champions(year)
 
-        league = League(league_id=LEAGUE_ID, year=year, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        league = League(league_id=LEAGUE_ID, year=year, debug=False)
         teams = league.teams
 
         # Sort teams by final_standing (1st, 2nd, 3rd, etc.)
@@ -368,7 +366,7 @@ async def get_luck_analysis():
 
         # Fallback to ESPN API (original logic)
         # Get available years
-        league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        league = League(league_id=LEAGUE_ID, year=2025, debug=False)
         available_years = [2025]
 
         if hasattr(league, 'previousSeasons') and league.previousSeasons:
@@ -580,7 +578,7 @@ async def get_teams_by_year(year: int):
         if not (2015 <= year <= 2025):
             raise HTTPException(status_code=400, detail="Year must be between 2015 and 2025")
 
-        league = League(league_id=LEAGUE_ID, year=year, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        league = League(league_id=LEAGUE_ID, year=year, debug=False)
         teams = league.teams
 
         team_data = []
@@ -610,7 +608,7 @@ async def get_current_matchups(week: int):
         if use_database():
             return db_api.get_matchups(2025, week)
 
-        league = League(league_id=LEAGUE_ID, year=2025, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        league = League(league_id=LEAGUE_ID, year=2025, debug=False)
         box_scores = league.box_scores(week)
 
         matchups = []
@@ -643,7 +641,7 @@ async def get_matchups_by_year_week(year: int, week: int):
         if use_database():
             return db_api.get_matchups(year, week)
 
-        league = League(league_id=LEAGUE_ID, year=year, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        league = League(league_id=LEAGUE_ID, year=year, debug=False)
         box_scores = league.box_scores(week)
 
         matchups = []
@@ -678,7 +676,7 @@ async def get_bench_heroes_query(year: int, week: int):
 
         print(f"Fetching bench heroes for year={year}, week={week}", flush=True)
 
-        league = League(league_id=LEAGUE_ID, year=year, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        league = League(league_id=LEAGUE_ID, year=year, debug=False)
         print(f"League created successfully for {year}", flush=True)
 
         box_scores = league.box_scores(week)
@@ -757,7 +755,7 @@ async def get_bench_heroes(year: int, week: int):
 
         print(f"Fetching bench heroes for year={year}, week={week}", flush=True)
 
-        league = League(league_id=LEAGUE_ID, year=year, espn_s2=ESPN_S2, swid=SWID, debug=False)
+        league = League(league_id=LEAGUE_ID, year=year, debug=False)
         print(f"League created successfully for {year}", flush=True)
 
         box_scores = league.box_scores(week)

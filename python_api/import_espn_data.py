@@ -12,8 +12,6 @@ from database import get_database, FFDatabase
 
 # ESPN API Configuration
 LEAGUE_ID = int(os.getenv('LEAGUE_ID', '0'))
-ESPN_S2 = os.getenv('ESPN_S2', '')
-SWID = os.getenv('SWID', '')
 
 class ESPNDataImporter:
     def __init__(self):
@@ -36,7 +34,7 @@ class ESPNDataImporter:
 
         try:
             # Get available years from ESPN
-            current_league = League(league_id=LEAGUE_ID, year=end_year, espn_s2=ESPN_S2, swid=SWID)
+            current_league = League(league_id=LEAGUE_ID, year=end_year)
             available_years = [end_year]
 
             if hasattr(current_league, 'previousSeasons') and current_league.previousSeasons:
@@ -75,7 +73,7 @@ class ESPNDataImporter:
     def import_year_data(self, year: int):
         """Import all data for a specific year"""
         try:
-            league = League(league_id=LEAGUE_ID, year=year, espn_s2=ESPN_S2, swid=SWID)
+            league = League(league_id=LEAGUE_ID, year=year)
 
             # Import core league data
             self.import_league_data(league, year)
@@ -421,8 +419,8 @@ def main():
     print("🚀 Starting ESPN Fantasy Football Data Import")
 
     # Validate environment variables
-    if not all([LEAGUE_ID, ESPN_S2, SWID]):
-        print("❌ Missing required environment variables: LEAGUE_ID, ESPN_S2, SWID")
+    if not LEAGUE_ID:
+        print("❌ Missing required environment variable: LEAGUE_ID")
         return
 
     # Initialize database

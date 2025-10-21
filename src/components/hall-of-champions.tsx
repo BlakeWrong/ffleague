@@ -194,7 +194,7 @@ export function HallOfChampions({ currentYear = 2025 }: HallOfChampionsProps) {
             )}
 
             <div className="grid gap-4">
-              {championsData.champions.map((champion) => (
+              {championsData?.champions?.map((champion) => (
                 <Card
                   key={champion.team_id}
                   className={`${getPlaceStyle(champion.place)} transition-all duration-200 hover:shadow-lg`}
